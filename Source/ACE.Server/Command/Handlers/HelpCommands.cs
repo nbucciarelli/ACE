@@ -56,7 +56,8 @@ namespace ACE.Server.Command.Handlers
                     continue;
                 Console.WriteLine($"{command.Attribute.Command} - {command.Attribute.Description}");
                 Console.WriteLine($"Usage: {command.Attribute.Command} {command.Attribute.Usage}");
-
+                CommandManager.History.WriteLine($"{command.Attribute.Command} - {command.Attribute.Description}");
+                CommandManager.History.WriteLine($"Usage: {command.Attribute.Command} {command.Attribute.Usage}");
                 return;
             }
 
@@ -71,6 +72,7 @@ namespace ACE.Server.Command.Handlers
             }
             else
                 Console.WriteLine($"Unknown command: {parameters[0]}");
+                CommandManager.History.WriteLine($"Unknown command: {parameters[0]}");
         }
 
         // acecommands
@@ -84,6 +86,7 @@ namespace ACE.Server.Command.Handlers
 
             if (session == null)            
                 Console.WriteLine("For more information, type acehelp < command >.");
+                CommandManager.History.WriteLine("For more information, type acehelp < command >.");
 
             foreach (var command in CommandManager.GetCommands())
             {
@@ -113,6 +116,7 @@ namespace ACE.Server.Command.Handlers
                 session.Network.EnqueueSend(new GameMessageSystemChat(msgHeader + msg, ChatMessageType.Broadcast));
             else
                 Console.WriteLine(msg);
+                CommandManager.History.WriteLine(msg);
         }
     }
 }

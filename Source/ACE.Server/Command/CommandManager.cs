@@ -7,14 +7,73 @@ using System.Threading;
 
 using ACE.Entity.Enum;
 using ACE.Server.Network;
+using ACE.Server.Command.SimpleWebServer;
 
 using log4net;
 
 namespace ACE.Server.Command
 {
+    //public class CmdLog
+    //{
+    //    public CmdRequest Request;
+    //    public CmdRequest Response;
+    //}
+    //public static class Konsole
+    //{
+    //    private static Queue<CmdLog> Fifo = new Queue<CmdLog>();
+    //    //public static CmdLog Begin(WebServiceCommandRequest req) { CmdLog temp = new CmdLog(); temp.Request = req; return temp; }
+    //    //public static CmdLog OnParse(CmdLog log, string command, string[] parameters) { return log; log.Response.command = command; log.Response.param = parameters; return log; }
+    //    //public static WebServiceCommandResponse Finish(CmdLog iou) { WebServiceCommandResponse resp = new WebServiceCommandResponse();  return resp; }
+    //}
+    public class CommandHistory
+    {
+        // custom code.
+        private Queue<CmdResponse> Commands = new Queue<CmdResponse>();
+        private CmdResponse Active = null;
+        private List<string> Written = new List<string>();
+
+        public void OnRequest(CmdRequest request)
+        {
+            if (Active == null) { Active = new CmdResponse(); Active.RequestId = request.RequestId; }
+        }
+        public void OnCommand(string commandLine) {
+            if (Active != null) { Active.commandLine = commandLine; }
+        }
+        public void OnParse(string command, string[] parameters) {
+            if (Active != null) { Active.command = command; Active.param = parameters; }
+        }
+        public void OnException(string message, Exception ex) {
+            if (Active != null) { Active.error = message; Finally(); }
+        }
+        public void WriteLine(string msg) {
+            if (Active != null) { Written.Add(msg); }
+        }
+        public void OnSuccess() {
+            if (Active != null) { Active.result = string.Join("\n", Written); Finally(); }
+        }
+        private void Finally() {
+            Commands.Enqueue(Active);
+            Active = null;
+            Written.Clear();
+        }
+
+        public CmdResponse GetResponse(CmdRequest request)
+        {
+            if (Active != null) { throw new Exception("Precondition violated: Active should be null."); }
+            else {
+                CmdResponse response = Commands.Dequeue();
+                if (response == null) { throw new Exception("Precondition violated: Queue should not be empty."); }
+                if (response.RequestId != request.RequestId) { throw new Exception("Violation: Request ID mismatch."); }
+                return response;
+            }
+        }
+    }
+
     public static class CommandManager
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public static CommandHistory History = new CommandHistory();
 
         private static Dictionary<string, CommandHandlerInfo> commandHandlers;
 
@@ -70,15 +129,19 @@ namespace ACE.Server.Command
                 if (string.IsNullOrWhiteSpace(commandLine))
                     continue;
 
+                History.OnCommand(commandLine);
+
                 string command = null;
                 string[] parameters = null;
                 try
                 {
                     ParseCommand(commandLine, out command, out parameters);
+                    History.OnParse(command, parameters);
                 }
                 catch (Exception ex)
                 {
                     log.Error($"Exception while parsing command: {commandLine}", ex);
+                    History.OnException($"Exception while parsing command: {commandLine}", ex);
                     return;
                 }
                 try
@@ -93,16 +156,19 @@ namespace ACE.Server.Command
                             }
                             // Add command to world manager's main thread...
                             ((CommandHandler)commandHandler.Handler).Invoke(null, parameters);
+                            History.OnSuccess();
                         }
                         catch (Exception ex)
                         {
                             log.Error($"Exception while invoking command handler for: {commandLine}", ex);
+                            History.OnException($"Exception while invoking command handler for: {commandLine}", ex);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     log.Error($"Exception while getting command handler for: {commandLine}", ex);
+                    History.OnException($"Exception while getting command handler for: {commandLine}", ex);
                 }
             }
         }

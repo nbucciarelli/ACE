@@ -9,6 +9,7 @@ using ACE.Common;
 using ACE.Database;
 using ACE.DatLoader;
 using ACE.Server.Command;
+using ACE.Server.Command.SimpleWebServer;
 using ACE.Server.Managers;
 using ACE.Server.Network.Managers;
 
@@ -63,6 +64,11 @@ namespace ACE.Server
 
             log.Info("Initializing ConfigManager...");
             ConfigManager.Initialize();
+
+            log.Info("Initializing Webservice... [ CUSTOM CODE ]");
+            WebService.Host = "127.0.0.1";
+            WebService.Port = 10080;
+            WebService.Start();
 
             log.Info("Initializing ServerManager...");
             ServerManager.Initialize();
@@ -155,6 +161,7 @@ namespace ACE.Server
 
             PropertyManager.StopUpdating();
             DatabaseManager.Stop();
+            WebService.Stop();
 
             // Do system specific cleanup here
             try

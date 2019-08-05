@@ -26,6 +26,7 @@ namespace ACE.Server.Command.Handlers
             }
             else
                 log.Info(output);
+                CommandManager.History.WriteLine(output);
         }
 
         /// <summary>
@@ -42,6 +43,7 @@ namespace ACE.Server.Command.Handlers
             }
             else
                 log.Debug(output);
+                CommandManager.History.WriteLine(output);
         }
 
         /// <summary>
