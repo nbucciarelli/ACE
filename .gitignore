@@ -288,6 +288,8 @@ __pycache__/
 *.odx.cs
 *.xsd.cs
 
+.DS_Store
+
 # ACEmulator specific files
 /Source/ACE.Server/config.js
 Database/tools/password.txt
