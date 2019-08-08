@@ -15,6 +15,7 @@ using ACE.Server.Network.Structure;
 using ACE.Server.Physics;
 using ACE.Server.WorldObjects;
 using ACE.Server.WorldObjects.Entity;
+using ACE.Server.Riptide;
 
 namespace ACE.Server.Managers
 {
@@ -367,9 +368,12 @@ namespace ACE.Server.Managers
         /// </summary>
         public virtual void RemoveRareEnchantments()
         {
-            var rareSpellIds = System.Enum.GetValues(typeof(RareEnchantment));
-
-            //WorldObject.Biota.RemoveEnchantmentsById(rareSpellIds, WorldObject.BiotaDatabaseLock);
+            //var rareSpellIds = System.Enum.GetValues(typeof(RareEnchantment));
+            //var rareSpellIds = System.Enum.GetNames(typeof(RareEnchantment));
+            //foreach (RareEnchantment r in System.Enum.GetValues(typeof(RareEnchantment)))
+            //    GlobalEventManager.GlobalWorldBroadcast(r.ToString());
+            var rareSpellIds = new int[] { 3681 };
+            WorldObject.Biota.RemoveEnchantmentsById(rareSpellIds, WorldObject.BiotaDatabaseLock);
             WorldObject.ChangesDetected = true;
         }
 

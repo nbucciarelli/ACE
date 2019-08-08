@@ -838,6 +838,12 @@ namespace ACE.Server.WorldObjects
         public static void UpdatePKTimers(Player attacker, Player defender)
         {
             if (attacker == defender) return;
+            //var attackerMsgPurgeEnchantments = new GameEventMagicPurgeEnchantments(attacker.Session);
+            //var defenderMsgPurgeEnchantments = new GameEventMagicPurgeEnchantments(defender.Session);
+            //attacker.EnchantmentManager.RemoveRareEnchantments();
+            //defender.EnchantmentManager.RemoveRareEnchantments();
+            //attacker.Session.Network.EnqueueSend(attackerMsgPurgeEnchantments);
+            //defender.Session.Network.EnqueueSend(defenderMsgPurgeEnchantments);
 
             attacker.UpdatePKTimer();
             defender.UpdatePKTimer();

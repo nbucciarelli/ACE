@@ -1149,12 +1149,12 @@ namespace ACE.Database.Models.Shard
             }
         }
 
-        public static void RemoveEnchantmentsById(this Biota biota, IEnumerable<int> spellsToRemove, ReaderWriterLockSlim rwLock)
+        public static void RemoveEnchantmentsById(this Biota biota, System.Array spellsToRemove, ReaderWriterLockSlim rwLock)
         {
             rwLock.EnterWriteLock();
             try
             {
-               var enchantments = biota.BiotaPropertiesEnchantmentRegistry.Where(e => spellsToRemove.Contains(e.SpellId)).ToList();
+               var enchantments = biota.BiotaPropertiesEnchantmentRegistry.Where(e => System.Array.IndexOf(spellsToRemove, e.SpellId) > -1 ? true : false).ToList();
 
                 foreach (var enchantment in enchantments)
                     biota.BiotaPropertiesEnchantmentRegistry.Remove(enchantment);
