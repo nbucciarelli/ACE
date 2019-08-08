@@ -398,7 +398,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Broadcast position updates to players within range
         /// </summary>
-        protected void SendUpdatePosition()
+        public void SendUpdatePosition()
         {
             EnqueueBroadcast(new GameMessageUpdatePosition(this));
         }
@@ -853,18 +853,6 @@ namespace ACE.Server.WorldObjects
                 ObjectDescriptionFlags &= ~flag;
         }
 
-        public void ClearRequestedPositions()
-        {
-            ForcedLocation = null;
-            RequestedLocation = null;
-        }
-
-        public void ClearPreviousLocation()
-        {
-            PreviousLocation = null;
-        }
-
-
         public bool? IgnoreCloIcons
         {
             get => GetProperty(PropertyBool.IgnoreCloIcons);
@@ -1103,9 +1091,43 @@ namespace ACE.Server.WorldObjects
             });
 
             actionChain.AddDelaySeconds(animLength);
+
             return animLength;
         }
 
+
+        public static bool EnqueueBroadcastMotion_Physics = true;
+
+        public void EnqueueBroadcastMotion(Motion motion, float? maxRange = null)
+        {
+            var msg = new GameMessageUpdateMotion(this, motion);
+
+            if (maxRange == null)
+                EnqueueBroadcast(msg);
+            else
+                EnqueueBroadcast(msg, maxRange.Value);
+
+            if (EnqueueBroadcastMotion_Physics)
+                ApplyPhysicsMotion(motion);
+        }
+
+        public void ApplyPhysicsMotion(Motion motion)
+        {
+            var minterp = PhysicsObj.get_minterp();
+            var rawState = minterp.RawState;
+
+            var allowJump = minterp.motion_allows_jump(minterp.InterpretedState.ForwardCommand) == WeenieError.None;
+
+            rawState.CurrentStyle = (uint)motion.Stance;
+            rawState.ForwardCommand = (uint)motion.MotionState.ForwardCommand;
+            rawState.ForwardSpeed = motion.MotionState.ForwardSpeed;
+
+            if (!PhysicsObj.IsMovingOrAnimating)
+                //PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime - PhysicsGlobals.MinQuantum;
+                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+
+            minterp.apply_raw_movement(true, allowJump);
+        }
 
         /// <summary>
         /// Returns TRUE if there are any players within range of this object

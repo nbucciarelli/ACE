@@ -113,11 +113,11 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public override void OnMoveComplete(WeenieError status)
+        public override void OnMoveComplete(WeenieError status, int cycles)
         {
             //Console.WriteLine($"{Name}.OnMoveComplete({status})");
 
-            base.OnMoveComplete(status);
+            base.OnMoveComplete(status, cycles);
 
             if (status != WeenieError.None)
                 return;
@@ -161,15 +161,6 @@ namespace ACE.Server.WorldObjects
             moveToPosition.MoveToParameters.DesiredHeading = physPos.Frame.get_heading();
 
             SetWalkRunThreshold(moveToPosition, to);
-
-            if (!InitSticky)
-            {
-                PhysicsObj.add_moveto_listener(OnMoveComplete);
-
-                PhysicsObj.add_sticky_listener(OnSticky);
-                PhysicsObj.add_unsticky_listener(OnUnsticky);
-                InitSticky = true;
-            }
 
             var mvp = GetMovementParameters();
             mvp.CanWalk = true;

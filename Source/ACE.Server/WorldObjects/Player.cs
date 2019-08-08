@@ -43,6 +43,11 @@ namespace ACE.Server.WorldObjects
 
         public bool LastContact = true;
         public bool IsJumping = false;
+        public DateTime LastJumpTime = DateTime.MinValue;
+        public bool WasAnimating;
+
+        public ACE.Entity.Position LastGroundPos;
+        public ACE.Entity.Position SnapPos;
 
         public ConfirmationManager ConfirmationManager;
 
@@ -146,6 +151,8 @@ namespace ACE.Server.WorldObjects
             LootPermission = new Dictionary<ObjectGuid, DateTime>();
 
             SquelchManager = new SquelchManager(this);
+
+            MagicState = new MagicState(this);
 
             return; // todo
 
@@ -358,23 +365,35 @@ namespace ACE.Server.WorldObjects
         {
             if (PKLogoutActive && !forceImmediate)
             {
-                Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Logging out in 20s...", ChatMessageType.Magic));
-
-                var actionChain = new ActionChain();
-                actionChain.AddDelaySeconds(20.0f);
-                actionChain.AddAction(this, () =>
-                {
-                    LogOut_Inner(clientSessionTerminatedAbruptly);
-                    Session.logOffRequestTime = DateTime.UtcNow;
-                });
-                actionChain.EnqueueChain();
-                return false;
+                var pkTimer = PropertyManager.GetLong("pk_timer").Item;
+                return TimedLogout(pkTimer, clientSessionTerminatedAbruptly, WeenieError.YouHaveBeenInPKBattleTooRecently);
             }
+
+            var logoutTimer = PropertyManager.GetLong("logout_timer").Item;
+            var logoutLevelRestriction = PropertyManager.GetLong("logout_timer_level_restriction").Item;
+            
+            if (logoutTimer > 0 && this.Level >= logoutLevelRestriction)
+                return TimedLogout(logoutTimer, clientSessionTerminatedAbruptly, WeenieError.YouChickenOut);
 
             LogOut_Inner(clientSessionTerminatedAbruptly);
 
             return true;
+        }
+
+        public bool TimedLogout(long timeInSeconds = 0, bool clientSessionTerminatedAbruptly = false, WeenieError weenieError = WeenieError.YouHaveBeenInPKBattleTooRecently)
+        {
+            Session.Network.EnqueueSend(new GameEventWeenieError(Session, weenieError));
+            Session.Network.EnqueueSend(new GameMessageSystemChat($"Logging out in {timeInSeconds}s...", ChatMessageType.Magic));
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds((float)timeInSeconds);
+            actionChain.AddAction(this, () =>
+            {
+                LogOut_Inner(clientSessionTerminatedAbruptly);
+                Session.logOffRequestTime = DateTime.UtcNow;
+            });
+            actionChain.EnqueueChain();
+            return false;
         }
 
         public void LogOut_Inner(bool clientSessionTerminatedAbruptly = false)
@@ -686,6 +705,7 @@ namespace ACE.Server.WorldObjects
         public void HandleActionJump(JumpPack jump)
         {
             StartJump = new ACE.Entity.Position(Location);
+            //Console.WriteLine($"JumpPack: Velocity: {jump.Velocity}, Extent: {jump.Extent}");
 
             var strength = Strength.Current;
             var capacity = EncumbranceSystem.EncumbranceCapacity((int)strength, AugmentationIncreasedCarryingCapacity);
@@ -713,6 +733,7 @@ namespace ACE.Server.WorldObjects
             }*/
 
             IsJumping = true;
+            LastJumpTime = DateTime.UtcNow;
 
             UpdateVitalDelta(Stamina, -staminaCost);
 
@@ -720,9 +741,17 @@ namespace ACE.Server.WorldObjects
 
             //Console.WriteLine($"Jump velocity: {jump.Velocity}");
 
-            // set jump velocity
+            if (!PhysicsObj.IsMovingOrAnimating)
+                //PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime - Physics.PhysicsGlobals.MinQuantum;
+                PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime;
+
             // TODO: have server verify / scale magnitude
-            PhysicsObj.set_velocity(jump.Velocity, true);
+
+            // perform jump in physics engine
+            PhysicsObj.TransientState &= ~(Physics.TransientStateFlags.Contact | Physics.TransientStateFlags.WaterContact);
+            PhysicsObj.calc_acceleration();
+            PhysicsObj.set_on_walkable(false);
+            PhysicsObj.set_local_velocity(jump.Velocity, false);
 
             // this shouldn't be needed, but without sending this update motion / simulated movement event beforehand,
             // running forward and then performing a charged jump does an uncharged shallow arc jump instead
