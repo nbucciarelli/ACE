@@ -329,8 +329,8 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool CanAddToInventory(WorldObject worldObject)
         {
-            if (this is Player player && !player.HasEnoughBurdenToAddToInventory(worldObject))
-                return false;
+            //if (this is Player player && !player.HasEnoughBurdenToAddToInventory(worldObject))
+            //    return false;
 
             if (worldObject.UseBackpackSlot)
                 return GetFreeContainerSlots() > 0;
@@ -386,14 +386,14 @@ namespace ACE.Server.WorldObjects
         public bool TryAddToInventory(WorldObject worldObject, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
         {
             // bug: should be root owner
-            if (this is Player player && burdenCheck)
-            {
-                if (!player.HasEnoughBurdenToAddToInventory(worldObject))
-                {
-                    container = null;
-                    return false;
-                }
-            }
+            //if (this is Player player && burdenCheck)
+            //{
+            //    if (!player.HasEnoughBurdenToAddToInventory(worldObject))
+            //    {
+            //        container = null;
+            //        return false;
+            //    }
+            //}
 
             IList<WorldObject> containerItems;
 
