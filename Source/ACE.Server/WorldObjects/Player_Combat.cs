@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Common;
@@ -847,6 +848,57 @@ namespace ACE.Server.WorldObjects
         public bool PKLogoutActive => IsPKType && Time.GetUnixTime() - LastPkAttackTimestamp < PKLogoffTimer.TotalSeconds;
 
         public bool IsPKType => PlayerKillerStatus == PlayerKillerStatus.PK || PlayerKillerStatus == PlayerKillerStatus.PKLite;
+
+        public bool CheckHouseRestrictions(Player player)
+        {
+            if (Location.Cell == player.Location.Cell)
+                return true;
+
+            // dealing with outdoor cell equivalents at this point, if applicable
+            var cell = CurrentLandblock.IsDungeon ? Location.Cell : Location.GetOutdoorCell();
+            var playerCell = player.CurrentLandblock.IsDungeon ? player.Location.Cell : player.Location.GetOutdoorCell();
+
+            if (cell == playerCell)
+                return true;
+
+            HouseCell.HouseCells.TryGetValue(cell, out var houseGuid);
+            HouseCell.HouseCells.TryGetValue(playerCell, out var playerHouseGuid);
+
+            // pass if both of these players aren't in a house cell
+            if (houseGuid == 0 && playerHouseGuid == 0)
+                return true;
+
+            var houses = new HashSet<House>();
+            CheckHouseRestrictions_GetHouse(houseGuid, houses);
+            player.CheckHouseRestrictions_GetHouse(playerHouseGuid, houses);
+
+            foreach (var house in houses)
+            {
+                if (!house.HasPermission(this) || !house.HasPermission(player))
+                    return false;
+            }
+            return true;
+        }
+
+        public void CheckHouseRestrictions_GetHouse(uint houseGuid, HashSet<House> houses)
+        {
+            if (houseGuid == 0)
+                return;
+
+            var house = CurrentLandblock.GetObject(houseGuid) as House;
+            if (house != null)
+            {
+                var rootHouse = house.LinkedHouses.Count > 0 ? house.LinkedHouses[0] : house;
+
+                if (rootHouse.HouseOwner == null || rootHouse.OpenStatus || houses.Contains(rootHouse))
+                    return;
+
+                //Console.WriteLine($"{Name}.CheckHouseRestrictions_GetHouse({houseGuid:X8}): found root house {house.Name} ({house.HouseId})");
+                houses.Add(rootHouse);
+            }
+            else
+                log.Error($"{Name}.CheckHouseRestrictions_GetHouse({houseGuid:X8}): couldn't find house from {CurrentLandblock.Id.Raw:X8}");
+        }
 
         /// <summary>
         /// Returns the damage type for the currently equipped weapon / ammo
