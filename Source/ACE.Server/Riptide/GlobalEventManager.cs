@@ -1,6 +1,8 @@
 using System;
+using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Riptide
@@ -15,10 +17,16 @@ namespace ACE.Server.Riptide
 
         public static void GlobalWorldBroadcast(string message)
         {
-            foreach (var player in PlayerManager.GetAllOnline())
-            {
-                player.Session.WorldBroadcast(message);
-            }
+            // new method: based on the "/we" command (world event.)
+            ChatMessageType messageType = ChatMessageType.Emote;
+            GameMessageSystemChat sysMessage = new GameMessageSystemChat(message, messageType);
+            PlayerManager.BroadcastToAll(sysMessage);
+
+//            //old method: do a loop
+//            foreach (var player in PlayerManager.GetAllOnline())
+//            {
+//                player.Session.WorldBroadcast(message);
+//            }
         }
         public static void OnPKDeath(Player killer, Player victim, DeathMessage deathMessage)
         {
