@@ -62,8 +62,32 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("rt-fetchbool", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Fetches a Riptide property that is a bool", "fetchbool (string)")]
         public static void HandleFetchRiptideBoolProperty(Session session, params string[] paramters)
         {
-            var boolVal = CustomPropertiesManager.GetBool(paramters[0], cacheFallback: false);
+            var boolVal = CustomPropertiesManager.GetBool(paramters[0]);
             CommandHandlerHelper.WriteOutputInfo(session, $"{paramters[0]} - {boolVal.Description ?? "No Description"}: {boolVal.Item}");
+        }
+
+        [CommandHandler("rt-modifydouble", AccessLevel.Admin, CommandHandlerFlag.None, 2, "Modifies a Riptide property that is a float", "rt-modifydouble (string) (float)")]
+        public static void HandleModifyRiptideFloatProperty(Session session, params string[] paramters)
+        {
+            try
+            {
+                var doubleVal = double.Parse(paramters[1]);
+                if (CustomPropertiesManager.ModifyDouble(paramters[0], doubleVal))
+                    CommandHandlerHelper.WriteOutputInfo(session, "Float property successfully updated!");
+                else
+                    CommandHandlerHelper.WriteOutputInfo(session, "Unknown float property was not updated. Type rt-showprops for a list of properties.");
+            }
+            catch (Exception)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Please input a valid float", ChatMessageType.Help);
+            }
+        }
+
+        [CommandHandler("rt-fetchdouble", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Fetches a Riptide property that is a float", "fetchdouble (string)")]
+        public static void HandleFetchRiptideFloatProperty(Session session, params string[] paramters)
+        {
+            var floatVal = CustomPropertiesManager.GetDouble(paramters[0]);
+            CommandHandlerHelper.WriteOutputInfo(session, $"{paramters[0]} - {floatVal.Description ?? "No Description"}: {floatVal.Item}");
         }
 
         [CommandHandler("tt", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Describes your target.")]

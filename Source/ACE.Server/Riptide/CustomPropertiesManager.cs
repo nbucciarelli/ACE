@@ -9,9 +9,14 @@ namespace ACE.Server.Riptide
 {
     public static class CustomPropertiesManager
     {
-        public static Property<bool> GetBool(string key, bool fallback = false, bool cacheFallback = true)
+        public static Property<bool> GetBool(string key)
         {
             return new Property<bool>(CachedBooleanSettings[key].Item, CachedBooleanSettings[key].Description);
+        }
+
+        public static Property<double> GetDouble(string key)
+        {
+            return new Property<double>(CachedDoubleSettings[key].Item, CachedDoubleSettings[key].Description);
         }
 
         public static bool ModifyBool(string key, bool newVal)
@@ -26,9 +31,25 @@ namespace ACE.Server.Riptide
             return true;
         }
 
+        public static bool ModifyDouble(string key, double newVal)
+        {
+            if (!DefaultDoubleProperties.ContainsKey(key))
+                return false;
+
+            if (CachedDoubleSettings.ContainsKey(key))
+                CachedDoubleSettings[key].Modify(newVal);
+            else
+                CachedDoubleSettings[key] = new ConfigurationEntry<double>(true, newVal, DefaultDoubleProperties[key].Description);
+            return true;
+        }
+
         private static readonly ReadOnlyDictionary<string, Property<bool>> DefaultBooleanProperties =
             DictOf(
                 ("fix_point_blank_missiles", new Property<bool>(true, "Enable/disable the point-blank missile fix."))
+            );
+        private static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
+            DictOf(
+                ("fix_point_blank_missiles_factor", new Property<double>(1.0, "Set range factor for point-blank missile fix."))
             );
 
         public static string ListProperties()
@@ -61,6 +82,11 @@ namespace ACE.Server.Riptide
             //bool
             foreach (var item in DefaultBooleanProperties)
                 ModifyBool(item.Key, item.Value.Item);
+
+            //double
+            foreach (var item in DefaultDoubleProperties)
+                ModifyDouble(item.Key, item.Value.Item);
+
             Console.WriteLine($"Got it");
         }
     }

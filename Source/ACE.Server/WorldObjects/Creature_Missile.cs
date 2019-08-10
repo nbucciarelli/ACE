@@ -130,13 +130,16 @@ namespace ACE.Server.WorldObjects
                 var D = matchIndoors ? target.Location.ToGlobal() : target.Location.Pos;
                 D.Z += target.Height / GetAimHeight(target);
                 var dist = Vector3.Distance(O, D);
+                double dradsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
+                dradsum *= RiptideUAT.Fix_Point_Blank_Projectiles_Factor();
+
 //                Console.WriteLine($"[Creature_Missile.cs] :: LaunchProjectile()...");
 //                Console.WriteLine(
 //                    $"[Distance] {dist}\n" +
 //                    $"[Line Of Sight?] {HasLineOfSight}\n" +
 //                    $"[Point-Blank?] {dist < radsum}\n"
 //                );
-                if (dist < radsum && HasLineOfSight)
+                if (dist < dradsum)
                     proj.OnCollideObject(target);
                 return proj;
             }
