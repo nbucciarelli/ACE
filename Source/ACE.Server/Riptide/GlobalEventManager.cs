@@ -5,6 +5,15 @@ using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Riptide
 {
+    // Each experimental feature should have its own flag.
+    // To conduct UAT on a feature, set the flag to true.
+    // If feature fails UAT, set the flag back to false.
+    // If feature passes UAT, the flag can be deprecated.
+    public static class RiptideUAT
+    {
+        public static bool Fix_Point_Blank_Projectiles = true;
+
+    }
     //public class GlobalEventFlags
     //{
     //    public bool PK_DEATH_ANNOUNCEMENT = true;

@@ -11,6 +11,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
 using ACE.Server.Physics.Animation;
+using ACE.Server.Riptide;
 
 namespace ACE.Server.WorldObjects
 {
@@ -109,11 +110,36 @@ namespace ACE.Server.WorldObjects
 
             // detonate point-blank projectiles immediately
             var radsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
-            var dist = Vector3.Distance(origin, dest);
-            if (dist < radsum)
-                proj.OnCollideObject(target);
 
-            return proj;
+            if (!RiptideUAT.Fix_Point_Blank_Projectiles)
+            {
+                // original implementation.
+                var dist = Vector3.Distance(origin, dest);
+                if (dist < radsum)
+                    proj.OnCollideObject(target);
+                return proj;
+            }
+            else
+            {
+                var HasLineOfSight = IsDirectVisible(target);
+                // rebuild origin.
+                var O = matchIndoors ? Location.ToGlobal() : Location.Pos;
+                O.Z += Height / GetAimHeight(this);  // this is the patch.
+                O += dir * 2.0f;
+                // rebuild target.
+                var D = matchIndoors ? target.Location.ToGlobal() : target.Location.Pos;
+                D.Z += target.Height / GetAimHeight(target);
+                var dist = Vector3.Distance(O, D);
+//                Console.WriteLine($"[Creature_Missile.cs] :: LaunchProjectile()...");
+//                Console.WriteLine(
+//                    $"[Distance] {dist}\n" +
+//                    $"[Line Of Sight?] {HasLineOfSight}\n" +
+//                    $"[Point-Blank?] {dist < radsum}\n"
+//                );
+                if (dist < radsum && HasLineOfSight)
+                    proj.OnCollideObject(target);
+                return proj;
+            }
         }
 
         /// <summary>
