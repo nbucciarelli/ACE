@@ -58,6 +58,10 @@ namespace ACE.Server.Riptide
             foreach (var item in DefaultBooleanProperties)
                 props += string.Format("\t{0}: {1} (current is {2}, default is {3})\n", item.Key, item.Value.Description, GetBool(item.Key).Item, item.Value.Item);
 
+            props += "Double properties:\n";
+            foreach (var item in DefaultDoubleProperties)
+                props += string.Format("\t{0}: {1} (current is {2}, default is {3})\n", item.Key, item.Value.Description, GetDouble(item.Key).Item, item.Value.Item);
+
             return props;
         }
 
