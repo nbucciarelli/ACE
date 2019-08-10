@@ -506,7 +506,7 @@ namespace ACE.Server.Managers
                 ("use_wield_requirements", new Property<bool>(true, "disable this to bypass wield requirements. mostly for dev debugging")),
                 ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world.")),
                 ("global_pk_kill_messages", new Property<bool>(false, "enable this to make PK kills a global death message."))
-                );
+            );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
             DictOf(

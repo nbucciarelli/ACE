@@ -111,7 +111,7 @@ namespace ACE.Server.WorldObjects
             // detonate point-blank projectiles immediately
             var radsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
 
-            if (!RiptideUAT.Fix_Point_Blank_Projectiles)
+            if (!RiptideUAT.Fix_Point_Blank_Projectiles())
             {
                 // original implementation.
                 var dist = Vector3.Distance(origin, dest);

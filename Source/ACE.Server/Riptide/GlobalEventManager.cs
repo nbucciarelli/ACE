@@ -9,11 +9,6 @@ namespace ACE.Server.Riptide
     // To conduct UAT on a feature, set the flag to true.
     // If feature fails UAT, set the flag back to false.
     // If feature passes UAT, the flag can be deprecated.
-    public static class RiptideUAT
-    {
-        public static bool Fix_Point_Blank_Projectiles = true;
-
-    }
     //public class GlobalEventFlags
     //{
     //    public bool PK_DEATH_ANNOUNCEMENT = true;

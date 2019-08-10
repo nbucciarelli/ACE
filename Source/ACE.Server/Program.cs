@@ -11,6 +11,7 @@ using ACE.DatLoader;
 using ACE.Server.Command;
 using ACE.Server.Managers;
 using ACE.Server.Network.Managers;
+using ACE.Server.Riptide;
 
 namespace ACE.Server
 {
@@ -78,6 +79,9 @@ namespace ACE.Server
 
             log.Info("Starting PropertyManager...");
             PropertyManager.Initialize();
+
+            log.Info("[Custom Code] Starting CustomPropertyManager...");
+            CustomPropertiesManager.Initialize();
 
             log.Info("Initializing GuidManager...");
             GuidManager.Initialize();
