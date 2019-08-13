@@ -612,19 +612,19 @@ namespace ACE.Server.Command.Handlers
                 {
                     case "npk":
                         session.Player.PlayerKillerStatus = PlayerKillerStatus.NPK;
-                        session.Player.PkLevelModifier = -1;
+                        session.Player.PkLevel = PKLevel.NPK;
                         break;
                     case "pk":
                         session.Player.PlayerKillerStatus = PlayerKillerStatus.PK;
-                        session.Player.PkLevelModifier = 1;
+                        session.Player.PkLevel = PKLevel.PK;
                         break;
                     case "pkl":
-                        session.Player.PkLevelModifier = 2;
                         session.Player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
+                        session.Player.PkLevel = PKLevel.NPK;
                         break;
                     case "free":
-                        session.Player.PkLevelModifier = 3;
                         session.Player.PlayerKillerStatus = PlayerKillerStatus.Free;
+                        session.Player.PkLevel = PKLevel.Free;
                         break;
                 }
                 session.Player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(session.Player, PropertyInt.PlayerKillerStatus, (int)session.Player.PlayerKillerStatus));
@@ -1141,7 +1141,7 @@ namespace ACE.Server.Command.Handlers
                             }
 
                             var weenie = DatabaseManager.World.GetCachedWeenie(item.WeenieClassId);
-                            msg += $"{((DestinationType)item.DestinationType).ToString()}: {item.Shade,7:P2} - {item.WeenieClassId,5} - {weenie.ClassName} - {weenie.GetProperty(PropertyString.Name)}\n";
+                            msg += $"{((DestinationType)item.DestinationType).ToString()}: {item.Shade,7:P2} - {item.WeenieClassId,5} - {(weenie != null ? weenie.ClassName : "Item not found in DB")} - {(weenie != null ? weenie.GetProperty(PropertyString.Name) : "Item not found in DB")}\n";
                         }
                     }
                     else
@@ -1795,15 +1795,15 @@ namespace ACE.Server.Command.Handlers
                         switch (i)
                         {
                             case int n when (n <= 5):
-                                currentPlayer.SetProperty((PropertyInt)int.Parse(returnStringArr[i]), int.Parse(returnStringArr[i + 1]));
+                                currentPlayer.SetProperty((PropertyInt)uint.Parse(returnStringArr[i]), int.Parse(returnStringArr[i + 1]));
                                 i += 2;
                                 break;
                             case int n when (n <= 9):
-                                currentPlayer.SetProperty((PropertyInt64)int.Parse(returnStringArr[i]), int.Parse(returnStringArr[i + 1]));
+                                currentPlayer.SetProperty((PropertyInt64)uint.Parse(returnStringArr[i]), long.Parse(returnStringArr[i + 1]));
                                 i += 2;
                                 break;
                             case int n when (n <= 33):
-                                var playerAttr = currentPlayer.Attributes[(PropertyAttribute)int.Parse(returnStringArr[i])];
+                                var playerAttr = currentPlayer.Attributes[(PropertyAttribute)uint.Parse(returnStringArr[i])];
                                 playerAttr.StartingValue = uint.Parse(returnStringArr[i + 1]);
                                 playerAttr.Ranks = uint.Parse(returnStringArr[i + 2]);
                                 playerAttr.ExperienceSpent = uint.Parse(returnStringArr[i + 3]);
@@ -1822,7 +1822,7 @@ namespace ACE.Server.Command.Handlers
                             case int n when (n <= 238):
                                 var playerSkill = currentPlayer.Skills[(Skill)int.Parse(returnStringArr[i])];
                                 playerSkill.Ranks = ushort.Parse(returnStringArr[i + 1]);
-                                playerSkill.AdvancementClass = (SkillAdvancementClass)int.Parse(returnStringArr[i + 2]);
+                                playerSkill.AdvancementClass = (SkillAdvancementClass)uint.Parse(returnStringArr[i + 2]);
                                 playerSkill.ExperienceSpent = uint.Parse(returnStringArr[i + 3]);
                                 playerSkill.InitLevel = uint.Parse(returnStringArr[i + 4]);
                                 currentPlayer.Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(currentPlayer, playerSkill.Skill, playerSkill.AdvancementClass, playerSkill.Ranks, playerSkill.InitLevel, playerSkill.ExperienceSpent));
@@ -2524,8 +2524,24 @@ namespace ACE.Server.Command.Handlers
             try
             {
                 var boolVal = bool.Parse(paramters[1]);
+
+                var prevState = PropertyManager.GetBool(paramters[0]);
+
+                if (prevState.Item == boolVal && !string.IsNullOrWhiteSpace(prevState.Description))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Bool property is already {boolVal} for {paramters[0]}!");
+                    return;
+                }
+
                 if (PropertyManager.ModifyBool(paramters[0], boolVal))
+                {
                     CommandHandlerHelper.WriteOutputInfo(session, "Bool property successfully updated!");
+
+                    if (paramters[0] == "pk_server" || paramters[0] == "pkl_server")
+                    {
+                        PlayerManager.UpdatePKStatusForAllPlayers(paramters[0], boolVal);
+                    }
+                }
                 else
                     CommandHandlerHelper.WriteOutputInfo(session, "Unknown bool property was not updated. Type showprops for a list of properties.");
             }

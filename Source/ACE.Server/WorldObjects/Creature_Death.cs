@@ -84,6 +84,9 @@ namespace ACE.Server.WorldObjects
             if (topDamager != null)
                 KillerId = topDamager.Guid.Full;
 
+            if (topDamager is Player)
+                topDamager.CreatureKills++;
+
             CurrentMotionState = new Motion(MotionStance.NonCombat, MotionCommand.Ready);
             //IsMonster = false;
 
@@ -175,7 +178,10 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            var corpse = WorldObjectFactory.CreateNewWorldObject(DatabaseManager.World.GetCachedWeenie("corpse")) as Corpse;
+            var cachedWeenie = DatabaseManager.World.GetCachedWeenie("corpse");
+
+            var corpse = WorldObjectFactory.CreateNewWorldObject(cachedWeenie) as Corpse;
+
             var prefix = "Corpse";
 
             if (TreasureCorpse)
