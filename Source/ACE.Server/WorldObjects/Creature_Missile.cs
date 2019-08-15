@@ -90,7 +90,7 @@ namespace ACE.Server.WorldObjects
             origin += dir * 2.0f;
 
             var velocity = GetProjectileVelocity(target, origin, dir, dest, speed, out time);
-            proj.Velocity = new AceVector3(velocity.X, velocity.Y, velocity.Z);
+            proj.Velocity = velocity;
 
             proj.Location = matchIndoors ? Location.FromGlobal(origin) : new Position(Location.Cell, origin, Location.Rotation);
             if (!matchIndoors)
@@ -98,7 +98,7 @@ namespace ACE.Server.WorldObjects
 
             SetProjectilePhysicsState(proj, target);
 
-            LandblockManager.AddObject(proj);
+            var result = LandblockManager.AddObject(proj);
             if (proj.PhysicsObj == null)
                 return null;
 
@@ -109,7 +109,13 @@ namespace ACE.Server.WorldObjects
             proj.EnqueueBroadcast(new GameMessageScript(proj.Guid, ACE.Entity.Enum.PlayScript.Launch, 0f));
 
             // detonate point-blank projectiles immediately
-            var radsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
+            /*var radsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
+            var dist = Vector3.Distance(origin, dest);
+            if (dist < radsum)
+            {
+                Console.WriteLine($"Point blank");
+                proj.OnCollideObject(target);
+            }*/
 
             if (!RiptideUAT.Fix_Point_Blank_Projectiles())
             {
@@ -215,9 +221,9 @@ namespace ACE.Server.WorldObjects
             obj.Placement = ACE.Entity.Enum.Placement.MissileFlight;
             obj.CurrentMotionState = null;
 
-            var velocity = obj.Velocity.Get();
+            var velocity = obj.Velocity;
 
-            obj.PhysicsObj.Velocity = velocity;
+            obj.PhysicsObj.Velocity = velocity.Value;
             obj.PhysicsObj.ProjectileTarget = target.PhysicsObj;
 
             obj.PhysicsObj.set_active(true);
