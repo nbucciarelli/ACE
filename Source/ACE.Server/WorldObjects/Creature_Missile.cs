@@ -117,38 +117,7 @@ namespace ACE.Server.WorldObjects
                 proj.OnCollideObject(target);
             }*/
 
-            if (!RiptideUAT.Fix_Point_Blank_Projectiles())
-            {
-                // original implementation.
-                var dist = Vector3.Distance(origin, dest);
-                if (dist < radsum)
-                    proj.OnCollideObject(target);
-                return proj;
-            }
-            else
-            {
-                var HasLineOfSight = IsDirectVisible(target);
-                // rebuild origin.
-                var O = matchIndoors ? Location.ToGlobal() : Location.Pos;
-                O.Z += Height / GetAimHeight(this);  // this is the patch.
-                O += dir * 2.0f;
-                // rebuild target.
-                var D = matchIndoors ? target.Location.ToGlobal() : target.Location.Pos;
-                D.Z += target.Height / GetAimHeight(target);
-                var dist = Vector3.Distance(O, D);
-                double dradsum = target.PhysicsObj.GetRadius() + proj.PhysicsObj.GetRadius();
-                dradsum *= RiptideUAT.Fix_Point_Blank_Projectiles_Factor();
-
-//                Console.WriteLine($"[Creature_Missile.cs] :: LaunchProjectile()...");
-//                Console.WriteLine(
-//                    $"[Distance] {dist}\n" +
-//                    $"[Line Of Sight?] {HasLineOfSight}\n" +
-//                    $"[Point-Blank?] {dist < radsum}\n"
-//                );
-                if (dist < dradsum)
-                    proj.OnCollideObject(target);
-                return proj;
-            }
+            return proj;
         }
 
         /// <summary>
