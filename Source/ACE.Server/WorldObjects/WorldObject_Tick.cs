@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 using ACE.Common;
 using ACE.Entity;
@@ -13,6 +14,9 @@ namespace ACE.Server.WorldObjects
 {
     partial class WorldObject
     {
+        // Used for cumulative ServerPerformanceMonitor event recording
+        protected readonly Stopwatch stopwatch = new Stopwatch();
+
         private const int heartbeatSpreadInterval = 5;
 
         protected double CachedHeartbeatInterval;
@@ -196,7 +200,6 @@ namespace ACE.Server.WorldObjects
         public uint prevCell;
         public bool InUpdate;
 
-
         public double lastDist;
 
         public static double ProjectileTimeout = 30.0f;
@@ -212,99 +215,131 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public virtual bool UpdateObjectPhysics()
         {
+            // TODO: Almost all of the CPU time is spent between this note and the first Try block. Mag-nus 2019-10-21
+            // TODO: In the future we should look at improving the way UpdateObjectPhysics() is called from Landblock
+            // TODO: We should exclude objects that never tick physics (Monsters)
+            // TODO: Perhaps for objects that have a throttle (Creatures), we use a list and only iterate through the pending creatures
+
             if (PhysicsObj == null || !PhysicsObj.is_active())
                 return false;
 
-            // arrows / spell projectiles
-            var isMissile = Missile ?? false;
+            bool isDying = false;
 
-            //var contactPlane = (PhysicsObj.State & PhysicsState.Gravity) != 0 && MotionTableId != 0 && (PhysicsObj.TransientState & TransientStateFlags.Contact) == 0;
-
-            // monsters have separate physics updates
-            var creature = this as Creature;
-            var monster = creature != null && creature.IsMonster;
-            //var pet = this as CombatPet;
-
-            // determine if updates should be run for object
-            //var runUpdate = !monster && (isMissile || !PhysicsObj.IsGrounded);
-            //var runUpdate = isMissile;
-            var runUpdate = !monster && (isMissile || /*IsMoving ||*/ /*!PhysicsObj.IsGrounded || */ PhysicsObj.InitialUpdates <= 1 || PhysicsObj.IsAnimating /*|| contactPlane*/);
-
-            if (creature != null)
+            if (this is Creature creature)
             {
-                if (LastPhysicsUpdate + UpdateRate_Creature <= PhysicsTimer.CurrentTime)
-                    LastPhysicsUpdate = PhysicsTimer.CurrentTime;
-                else
-                    runUpdate = false;
-            }
-
-            if (!runUpdate) return false;
-
-            if (isMissile && physicsCreationTime + ProjectileTimeout <= PhysicsTimer.CurrentTime)
-            {
-                // only for projectiles?
-                //Console.WriteLine("Timeout reached - destroying " + Name);
-                PhysicsObj.set_active(false);
-                Destroy();
-                return false;
-            }
-
-            // get position before
-            var pos = PhysicsObj.Position.Frame.Origin;
-            var prevPos = pos;
-            var cellBefore = PhysicsObj.CurCell != null ? PhysicsObj.CurCell.ID : 0;
-
-            //Console.WriteLine($"{Name} - ticking physics");
-            var updated = PhysicsObj.update_object();
-
-            // get position after
-            pos = PhysicsObj.Position.Frame.Origin;
-            var newPos = pos;
-
-            // handle landblock / cell change
-            var isMoved = (prevPos != newPos);
-            var curCell = PhysicsObj.CurCell;
-
-            if (PhysicsObj.CurCell == null)
-            {
-                //Console.WriteLine("CurCell is null");
-                PhysicsObj.set_active(false);
-                Destroy();
-                return false;
-            }
-
-            var landblockUpdate = (cellBefore >> 16) != (curCell.ID >> 16);
-            if (isMoved)
-            {
-                if (curCell.ID != cellBefore)
-                    Location.LandblockId = new LandblockId(curCell.ID);
-
-                Location.Pos = newPos;
-                Location.Rotation = PhysicsObj.Position.Frame.Orientation;
-                //if (landblockUpdate)
-                //WorldManager.UpdateLandblock.Add(this);
-            }
-
-            /*if (PhysicsObj.IsGrounded)
-                SendUpdatePosition();*/
-
-            //var dist = Vector3.Distance(ProjectileTarget.Location.Pos, newPos);
-            //Console.WriteLine("Dist: " + dist);
-            //Console.WriteLine("Velocity: " + PhysicsObj.Velocity);
-
-            if (this is SpellProjectile spellProjectile && spellProjectile.SpellType == SpellProjectile.ProjectileSpellType.Ring)
-            {
-                var dist = spellProjectile.SpawnPos.DistanceTo(Location);
-                var maxRange = spellProjectile.Spell.BaseRangeConstant;
-                //Console.WriteLine("Max range: " + maxRange);
-                if (dist > maxRange)
-                {
-                    PhysicsObj.set_active(false);
-                    spellProjectile.ProjectileImpact();
+                if (LastPhysicsUpdate + UpdateRate_Creature > PhysicsTimer.CurrentTime)
                     return false;
+
+                LastPhysicsUpdate = PhysicsTimer.CurrentTime;
+
+                // monsters have separate physics updates,
+                // except during the first frame of spawning, idle emotes, and dying
+                isDying = creature.IsDead;
+
+                // determine if updates should be run for object
+                var runUpdate = PhysicsObj.IsAnimating && (!creature.IsMonster || !creature.IsAwake) || isDying || PhysicsObj.InitialUpdates <= 1;
+
+                if (!runUpdate)
+                    return false;
+            }
+            else
+            {
+                // arrows / spell projectiles
+                //var isMissile = Missile ?? false;
+                if ((PhysicsObj.State & PhysicsState.Missile) != 0) // This is a bit more performant than the line above
+                {
+                    if (physicsCreationTime + ProjectileTimeout <= PhysicsTimer.CurrentTime)
+                    {
+                        // only for projectiles?
+                        //Console.WriteLine("Timeout reached - destroying " + Name);
+                        PhysicsObj.set_active(false);
+                        Destroy();
+                        return false;
+                    }
+
+                    // missiles always run an update
+                }
+                else
+                {
+                    // determine if updates should be run for object
+                    var runUpdate = PhysicsObj.IsAnimating || PhysicsObj.InitialUpdates <= 1;
+
+                    if (!runUpdate)
+                        return false;
                 }
             }
-            return landblockUpdate;
+
+            try
+            {
+                stopwatch.Restart();
+
+                // get position before
+                var prevPos = PhysicsObj.Position.Frame.Origin;
+                var cellBefore = PhysicsObj.CurCell != null ? PhysicsObj.CurCell.ID : 0;
+
+                //Console.WriteLine($"{Name} - ticking physics");
+                var updated = PhysicsObj.update_object();
+
+                // get position after
+                var newPos = PhysicsObj.Position.Frame.Origin;
+
+                // handle landblock / cell change
+                var isMoved = (prevPos != newPos);
+                var curCell = PhysicsObj.CurCell;
+
+                if (PhysicsObj.CurCell == null)
+                {
+                    //Console.WriteLine("CurCell is null");
+                    PhysicsObj.set_active(false);
+                    Destroy();
+                    return false;
+                }
+
+                var landblockUpdate = (cellBefore >> 16) != (curCell.ID >> 16);
+
+                if (isMoved || isDying)
+                {
+                    if (curCell.ID != cellBefore)
+                        Location.LandblockId = new LandblockId(curCell.ID);
+
+                    Location.Pos = newPos;
+                    Location.Rotation = PhysicsObj.Position.Frame.Orientation;
+
+                    //if (landblockUpdate)
+                    //WorldManager.UpdateLandblock.Add(this);
+                }
+
+                /*if (PhysicsObj.IsGrounded)
+                    SendUpdatePosition();*/
+
+                //var dist = Vector3.Distance(ProjectileTarget.Location.Pos, newPos);
+                //Console.WriteLine("Dist: " + dist);
+                //Console.WriteLine("Velocity: " + PhysicsObj.Velocity);
+
+                if (this is SpellProjectile spellProjectile && spellProjectile.SpellType == SpellProjectile.ProjectileSpellType.Ring)
+                {
+                    var dist = spellProjectile.SpawnPos.DistanceTo(Location);
+                    var maxRange = spellProjectile.Spell.BaseRangeConstant;
+                    //Console.WriteLine("Max range: " + maxRange);
+                    if (dist > maxRange)
+                    {
+                        PhysicsObj.set_active(false);
+                        spellProjectile.ProjectileImpact();
+                        return false;
+                    }
+                }
+
+                return landblockUpdate;
+            }
+            finally
+            {
+                var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
+                ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.WorldObject_Tick_UpdateObjectPhysics, elapsedSeconds);
+                if (elapsedSeconds >= 1) // Yea, that ain't good....
+                    log.Warn($"[PERFORMANCE][PHYSICS] {Guid}:{Name} took {(elapsedSeconds * 1000):N1} ms to process UpdateObjectPhysics() at loc: {Location}");
+                else if (elapsedSeconds >= 0.010)
+                    log.Debug($"[PERFORMANCE][PHYSICS] {Guid}:{Name} took {(elapsedSeconds * 1000):N1} ms to process UpdateObjectPhysics() at loc: {Location}");
+            }
         }
     }
 }

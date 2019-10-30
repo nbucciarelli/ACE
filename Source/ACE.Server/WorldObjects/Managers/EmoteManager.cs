@@ -15,18 +15,18 @@ using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.WorldObjects;
 
 using log4net;
 
 using Position = ACE.Entity.Position;
 using Spell = ACE.Server.Entity.Spell;
 
-namespace ACE.Server.Managers
+namespace ACE.Server.WorldObjects.Managers
 {
-    public partial class EmoteManager
+    public class EmoteManager
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -38,7 +38,8 @@ namespace ACE.Server.Managers
         /// <summary>
         /// Returns TRUE if this WorldObject is currently busy processing other emotes
         /// </summary>
-        public bool IsBusy;
+        public bool IsBusy { get; set; }
+        public int Nested { get; set; }
 
         public bool Debug = false;
 
@@ -129,13 +130,14 @@ namespace ACE.Server.Managers
                 case EmoteType.AwardLuminance:
 
                     if (player != null)
-                        player.GrantLuminance((long)emote.Amount);
+                        player.EarnLuminance(emote.HeroXP64 ?? 0, XpType.Quest, ShareType.None);
+
                     break;
 
                 case EmoteType.AwardNoShareXP:
 
                     if (player != null)
-                        player.EarnXP((long)emote.Amount64, XpType.Quest, ShareType.None);
+                        player.EarnXP(emote.Amount64 ?? 0, XpType.Quest, ShareType.None);
 
                     break;
 
@@ -154,14 +156,14 @@ namespace ACE.Server.Managers
                 case EmoteType.AwardTrainingCredits:
 
                     if (player != null)
-                        player.AddSkillCredits((int)emote.Amount, false);
+                        player.AddSkillCredits(emote.Amount ?? 0, false);
                     break;
 
                 case EmoteType.AwardXP:
 
                     if (player != null)
                     {
-                        var amt = (long)emote.Amount64;
+                        var amt = emote.Amount64 ?? 0;
                         if (amt > 0)
                         {
                             player.EarnXP(amt, XpType.Quest, ShareType.All);
@@ -332,39 +334,12 @@ namespace ACE.Server.Managers
                 case EmoteType.Give:
 
                     bool success = false;
+
+                    var stackSize = emote.StackSize ?? 1;
+
                     if (player != null && emote.WeenieClassId != null)
-                    {
-                        var item = WorldObjectFactory.CreateNewWorldObject((uint)emote.WeenieClassId);
+                        player.GiveFromEmote(WorldObject, emote.WeenieClassId ?? 0, stackSize > 0 ? stackSize : 1);
 
-                        var stackMsg = "";
-                        if (item != null)
-                        {
-                            var stackSize = emote.StackSize ?? 1;
-                            if (stackSize > 1)
-                            {
-                                item.SetStackSize(stackSize);
-                                stackMsg = stackSize + " ";     // pluralize?
-                            }
-                        }
-                        else
-                            item = PlayerFactory.CreateIOU((uint)emote.WeenieClassId);
-
-                        success = player.TryCreateInInventoryWithNetworking(item);
-
-                        // transaction / rollback on failure?
-                        if (success)
-                        {
-                            var msg = new GameMessageSystemChat($"{WorldObject.Name} gives you {stackMsg}{item.Name}.", ChatMessageType.Broadcast);
-                            var sound = new GameMessageSound(player.Guid, Sound.ReceiveItem, 1);
-                            if (!(WorldObject.GetProperty(PropertyBool.NpcInteractsSilently) ?? false))
-                                player.Session.Network.EnqueueSend(msg, sound);
-                            else
-                                player.Session.Network.EnqueueSend(sound);
-
-                            if (PropertyManager.GetBool("player_receive_immediate_save").Item)
-                                player.RushNextPlayerSave(5);
-                        }
-                    }
                     break;
 
                 /* redirects to the GotoSet category for this action */
@@ -1040,7 +1015,7 @@ namespace ACE.Server.Managers
 
                         if (questName.EndsWith("@#kt", StringComparison.Ordinal))
                         {
-                            player.QuestManager.HandleKillTask(questName, WorldObject, player.CurrentRadarRange);
+                            player.QuestManager.HandleKillTask(questName, WorldObject);
                         }
                         else
                             player.QuestManager.Stamp(emote.Message);
@@ -1318,6 +1293,7 @@ namespace ACE.Server.Managers
             if (IsBusy && !nested) return false;
 
             // start action chain
+            Nested++;
             Enqueue(emoteSet, targetObject);
 
             return true;
@@ -1325,20 +1301,25 @@ namespace ACE.Server.Managers
 
         public void Enqueue(BiotaPropertiesEmote emoteSet, WorldObject targetObject, int emoteIdx = 0, float delay = 0.0f)
         {
-            if (emoteSet == null) return;
+            if (emoteSet == null)
+            {
+                Nested--;
+                return;
+            }
 
             IsBusy = true;
             var emote = emoteSet.BiotaPropertiesEmoteAction.ElementAt(emoteIdx);
 
             var actionChain = new ActionChain();
 
+            if (Debug)
+                actionChain.AddAction(WorldObject, () => Console.Write($"{emote.Delay} - "));
+
             // post-delay from actual time of previous emote
             actionChain.AddDelaySeconds(delay);
 
             // pre-delay for current emote
             actionChain.AddDelaySeconds(emote.Delay);
-            if (Debug)
-                Console.Write($"{emote.Delay} - ");
 
             actionChain.AddAction(WorldObject, () =>
             {
@@ -1356,7 +1337,13 @@ namespace ACE.Server.Managers
                 {
                     var delayChain = new ActionChain();
                     delayChain.AddDelaySeconds(nextDelay);
-                    delayChain.AddAction(WorldObject, () => IsBusy = false);
+                    delayChain.AddAction(WorldObject, () =>
+                    {
+                        Nested--;
+
+                        if (Nested == 0)
+                            IsBusy = false;
+                    });
                     delayChain.EnqueueChain();
                 }
             });

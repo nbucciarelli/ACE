@@ -408,6 +408,20 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
+        /// Returns TRUE if there are enough free inventory slots and burden available to add item
+        /// </summary>
+        public bool CanAddToContainer(WorldObject worldObject, bool includeSidePacks = true)
+        {
+            if (this is Player player && !player.HasEnoughBurdenToAddToInventory(worldObject))
+                return false;
+
+            if (worldObject.UseBackpackSlot)
+                return GetFreeContainerSlots() > 0;
+            else
+                return GetFreeInventorySlots(includeSidePacks) > 0;
+        }
+
+        /// <summary>
         /// If enough burden is available, this will try to add an item to the main pack. If the main pack is full, it will try to add it to the first side pack with room.<para />
         /// It will also increase the EncumbranceVal and Value.
         /// </summary>
@@ -672,6 +686,26 @@ namespace ACE.Server.WorldObjects
             player.Session.Network.EnqueueSend(itemsToSend.ToArray());
         }
 
+        private void SendDeletesForMyInventory(Player player)
+        {
+            // send deleteobjects for all objects in this container's inventory to player
+            var itemsToSend = new List<GameMessage>();
+
+            foreach (var item in Inventory.Values)
+            {
+                // FIXME: only send messages for known objects
+                itemsToSend.Add(new GameMessageDeleteObject(item));
+
+                if (item is Container container)
+                {
+                    foreach (var containerItem in container.Inventory.Values)
+                        itemsToSend.Add(new GameMessageDeleteObject(containerItem));
+                }
+            }
+
+            player.Session.Network.EnqueueSend(itemsToSend.ToArray());
+        }
+
         public virtual void Close(Player player)
         {
             if (!IsOpen) return;
@@ -782,7 +816,8 @@ namespace ACE.Server.WorldObjects
                     if (sourceItem.StackSize == 0)
                     {
                         TryRemoveFromInventory(sourceItem.Guid);
-                        sourceItem.Destroy();
+                        if (!sourceItem.IsDestroyed)
+                            sourceItem.Destroy();
                         break;
                     }
                 }

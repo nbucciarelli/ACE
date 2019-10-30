@@ -221,7 +221,10 @@ namespace ACE.Server.WorldObjects
             var rawState = moveToState.RawMotionState;
 
             if (DebugPlayerMoveToStatePhysics)
-                rawState.ShowInfo();
+                Console.WriteLine(rawState);
+
+            if (RecordCast.Enabled)
+                RecordCast.OnMoveToState(moveToState);
 
             var minterp = PhysicsObj.get_minterp();
             minterp.RawState.SetState(moveToState.RawMotionState);
@@ -250,35 +253,49 @@ namespace ACE.Server.WorldObjects
 
         public override bool UpdateObjectPhysics()
         {
-            bool landblockUpdate = false;
-
-            InUpdate = true;
-
-            // update position through physics engine
-            if (RequestedLocation != null)
+            try
             {
-                landblockUpdate = UpdatePlayerPosition(RequestedLocation);
-                RequestedLocation = null;
-            }
+                stopwatch.Restart();
 
-            if (PhysicsObj.IsMovingOrAnimating)
+                bool landblockUpdate = false;
+
+                InUpdate = true;
+
+                // update position through physics engine
+                if (RequestedLocation != null)
+                {
+                    landblockUpdate = UpdatePlayerPosition(RequestedLocation);
+                    RequestedLocation = null;
+                }
+
+                if (PhysicsObj.IsMovingOrAnimating)
+                {
+                    UpdatePlayerPhysics();
+                    WasAnimating = true;
+                }
+                else if (WasAnimating)
+                {
+                    WasAnimating = false;
+
+                    if (DebugPlayerMoveToStatePhysics)
+                        Console.WriteLine("--------------------------");
+
+                    OnMotionQueueDone();
+                }
+
+                InUpdate = false;
+
+                return landblockUpdate;
+            }
+            finally
             {
-                UpdatePlayerPhysics();
-                WasAnimating = true;
+                var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
+                ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Player_Tick_UpdateObjectPhysics, elapsedSeconds);
+                if (elapsedSeconds >= 1) // Yea, that ain't good....
+                    log.Warn($"[PERFORMANCE][PHYSICS] {Guid}:{Name} took {(elapsedSeconds * 1000):N1} ms to process UpdateObjectPhysics() at loc: {Location}");
+                else if (elapsedSeconds >= 0.010)
+                    log.Debug($"[PERFORMANCE][PHYSICS] {Guid}:{Name} took {(elapsedSeconds * 1000):N1} ms to process UpdateObjectPhysics() at loc: {Location}");
             }
-            else if (WasAnimating)
-            {
-                WasAnimating = false;
-
-                if (DebugPlayerMoveToStatePhysics)
-                    Console.WriteLine("--------------------------");
-
-                OnMotionQueueDone();
-            }
-
-            InUpdate = false;
-
-            return landblockUpdate;
         }
 
         public void UpdatePlayerPhysics()
@@ -303,6 +320,7 @@ namespace ACE.Server.WorldObjects
                 LastMoveToState = null;
             }
         }
+
 
         /// <summary>
         /// Used by physics engine to actually update a player position

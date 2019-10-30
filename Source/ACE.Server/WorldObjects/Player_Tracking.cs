@@ -41,7 +41,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public List<WorldObject> GetKnownObjects()
         {
-            return ObjMaint.KnownObjects.Values.Select(o => o.WeenieObj.WorldObject).Where(wo => wo != null).ToList();
+            return ObjMaint.GetKnownObjectsValuesWhere(wo => wo != null).Select(o => o.WeenieObj.WorldObject).ToList();
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace ACE.Server.WorldObjects
         public bool AddTrackedObject(WorldObject worldObject)
         {
             // does this work for equipped objects?
-            if (ObjMaint.KnownObjects.Values.Contains(worldObject.PhysicsObj))
+            if (ObjMaint.KnownObjectsContainsValue(worldObject.PhysicsObj))
             {
                 //Console.WriteLine($"Player {Name} - AddTrackedObject({worldObject.Name}) skipped, already tracked");
                 return false;
@@ -87,27 +87,25 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        /// <summary>
-        /// This will return true of the object was being tracked and has successfully been removed.
-        /// </summary>
-        public bool RemoveTrackedObject(WorldObject worldObject, bool fromPickup)
+        public void RemoveTrackedObject(WorldObject wo, bool fromPickup)
         {
-            //Console.WriteLine($"Player {Name} - RemoveTrackedObject({remove})");
+            //log.Info($"{Name}.RemoveTrackedObject({wo.Name} ({wo.Guid}), {fromPickup})");
 
-            if (fromPickup && !worldObject.WielderId.HasValue)
-                Session.Network.EnqueueSend(new GameMessagePickupEvent(worldObject));
-            else if (fromPickup && worldObject.WielderId.HasValue)
-                Session.Network.EnqueueSend(new GameMessagePickupEvent(worldObject), new GameMessageParentEvent(worldObject.Wielder, worldObject, (int)worldObject.ParentLocation, (int)worldObject.Placement));
+            if (fromPickup)
+            {
+                Session.Network.EnqueueSend(new GameMessagePickupEvent(wo));
+
+                if (wo.WielderId != null && (wo.ParentLocation ?? 0) != 0)
+                    Session.Network.EnqueueSend(new GameMessageParentEvent(wo.Wielder, wo));
+            }
             else
-                Session.Network.EnqueueSend(new GameMessageDeleteObject(worldObject));
+                Session.Network.EnqueueSend(new GameMessageDeleteObject(wo));
 
-            if (worldObject is Creature creature)
+            if (wo is Creature creature)
             {
                 foreach (var wieldedItem in creature.EquippedObjects.Values)
                     RemoveTrackedEquippedObject(creature, wieldedItem);
             }
-
-            return true;
         }
 
 
@@ -116,7 +114,7 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"Player {Name} - TrackEquippedObject({wieldedItem.Name}) on Wielder {wielder.Name}");
 
             // We make sure the item is actually wielded and selectable
-            if ((wieldedItem.CurrentWieldedLocation ?? 0 & EquipMask.SelectablePlusAmmo) == 0)
+            if (((wieldedItem.CurrentWieldedLocation ?? 0) & EquipMask.SelectablePlusAmmo) == 0)
                 return;
 
             // The wielder already knows about this object
@@ -131,7 +129,7 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"Player {Name} - RemoveTrackedEquippedObject({worldObject.Name}) on Former Wielder {formerWielder.Name}");
 
             // We don't need to remove objects that couldn't have been tracked in the first place
-            if ((worldObject.ValidLocations ?? 0 & EquipMask.SelectablePlusAmmo) == 0)
+            if (((worldObject.ValidLocations ?? 0) & EquipMask.SelectablePlusAmmo) == 0)
                 return;
 
             // The former wielder already knows about this object was removed

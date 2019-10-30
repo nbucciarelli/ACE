@@ -8,6 +8,7 @@ using log4net;
 
 using ACE.Common;
 using ACE.Common.Extensions;
+using ACE.Database;
 using ACE.Database.Models.Shard;
 using ACE.Database.Models.World;
 using ACE.Entity;
@@ -25,6 +26,7 @@ using ACE.Server.Physics;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Common;
 using ACE.Server.Physics.Util;
+using ACE.Server.WorldObjects.Managers;
 
 using Landblock = ACE.Server.Entity.Landblock;
 using Position = ACE.Entity.Position;
@@ -137,7 +139,18 @@ namespace ACE.Server.WorldObjects
             if (!(this is Creature))
             {
                 var isDynamic = Static == null || !Static.Value;
-                PhysicsObj = PhysicsObj.makeObject(SetupTableId, Guid.Full, isDynamic);
+                var setupTableId = SetupTableId;
+
+                // TODO: REMOVE ME?
+                // Temporary workaround fix to account for ace spawn placement issues with certain hooked objects.
+                if (this is Hook)
+                {
+                    var hookWeenie = DatabaseManager.World.GetCachedWeenie(WeenieClassId);
+                    setupTableId = hookWeenie.GetProperty(PropertyDataId.Setup) ?? SetupTableId;
+                }
+                // TODO: REMOVE ME?
+
+                PhysicsObj = PhysicsObj.makeObject(setupTableId, Guid.Full, isDynamic);
             }
             else
             {
@@ -291,14 +304,13 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool Teleporting { get; set; } = false;
 
-        public bool HandleNPCReceiveItem(WorldObject item, WorldObject giver, out BiotaPropertiesEmote emote)
+        public bool HasGiveOrRefuseEmoteForItem(WorldObject item, out BiotaPropertiesEmote emote)
         {
             // NPC refuses this item, with a custom response
             var refuseItem = EmoteManager.GetEmoteSet(EmoteCategory.Refuse, null, null, item.WeenieClassId);
             if (refuseItem != null)
             {
                 emote = refuseItem;
-                EmoteManager.ExecuteEmoteSet(refuseItem, giver);
                 return true;
             }            
 
@@ -307,7 +319,6 @@ namespace ACE.Server.WorldObjects
             if (giveItem != null)
             {
                 emote = giveItem;
-                EmoteManager.ExecuteEmoteSet(giveItem, giver);
                 return true;
             }
 
@@ -324,7 +335,7 @@ namespace ACE.Server.WorldObjects
                 return false;
 
             // note: VisibleTargets is only maintained for monsters and combat pets
-            return PhysicsObj.ObjMaint.VisibleTargets.ContainsKey(wo.PhysicsObj.ID);
+            return PhysicsObj.ObjMaint.VisibleTargetsContainsKey(wo.PhysicsObj.ID);
         }
 
         //public static PhysicsObj SightObj = PhysicsObj.makeObject(0x02000124, 0, false, true);     // arrow
@@ -855,6 +866,7 @@ namespace ACE.Server.WorldObjects
                 NotifyOfEvent(RegenerationType.Destruction);
 
             CurrentLandblock?.RemoveWorldObject(Guid);
+
             RemoveBiotaFromDatabase();
 
             if (Guid.IsDynamic())

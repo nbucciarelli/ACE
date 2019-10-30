@@ -130,7 +130,7 @@ namespace ACE.Server.WorldObjects
 
         public virtual bool FindNextTarget()
         {
-            ServerPerformanceMonitor.ResumeEvent(ServerPerformanceMonitor.MonitorType.Monster_Awareness_FindNextTarget);
+            stopwatch.Restart();
 
             try
             {
@@ -180,14 +180,14 @@ namespace ACE.Server.WorldObjects
 
                     case TargetingTactic.LastDamager:
 
-                        var lastDamager = DamageHistory.LastDamager;
+                        var lastDamager = DamageHistory.LastDamager as Creature;
                         if (lastDamager != null)
                             AttackTarget = lastDamager;
                         break;
 
                     case TargetingTactic.TopDamager:
 
-                        var topDamager = DamageHistory.TopDamager;
+                        var topDamager = DamageHistory.TopDamager as Creature;
                         if (topDamager != null)
                             AttackTarget = topDamager;
                         break;
@@ -222,7 +222,7 @@ namespace ACE.Server.WorldObjects
             }
             finally
             {
-                ServerPerformanceMonitor.PauseEvent(ServerPerformanceMonitor.MonitorType.Monster_Awareness_FindNextTarget);
+                ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Monster_Awareness_FindNextTarget, stopwatch.Elapsed.TotalSeconds);
             }
         }
 
@@ -233,11 +233,8 @@ namespace ACE.Server.WorldObjects
         {
             var visibleTargets = new List<Creature>();
 
-            foreach (var target in PhysicsObj.ObjMaint.VisibleTargets.Values)
+            foreach (var creature in PhysicsObj.ObjMaint.GetVisibleTargetsValuesOfTypeCreature())
             {
-                var creature = target.WeenieObj.WorldObject as Creature;
-                if (creature == null) continue;
-
                 // ensure attackable
                 if (!creature.Attackable || creature.Teleporting) continue;
 
@@ -317,11 +314,9 @@ namespace ACE.Server.WorldObjects
             Creature closestTarget = null;
             var closestDistSq = float.MaxValue;
 
-            foreach (var visibleTarget in PhysicsObj.ObjMaint.VisibleTargets.Values)
+            foreach (var creature in PhysicsObj.ObjMaint.GetVisibleTargetsValuesOfTypeCreature())
             {
-                var creature = visibleTarget.WeenieObj.WorldObject as Creature;
-
-                if (creature == null || creature is Player player && (!player.Attackable || player.Teleporting || (player.Hidden ?? false)))
+                if (creature is Player player && (!player.Attackable || player.Teleporting || (player.Hidden ?? false)))
                     continue;
 
                 var distSq = Location.SquaredDistanceTo(creature.Location);

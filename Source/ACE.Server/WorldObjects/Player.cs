@@ -4,6 +4,7 @@ using System.Linq;
 
 using log4net;
 
+using ACE.Database;
 using ACE.Database.Models.Auth;
 using ACE.Database.Models.Shard;
 using ACE.Database.Models.World;
@@ -21,9 +22,9 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Common;
+using ACE.Server.WorldObjects.Managers;
 
 using MotionTable = ACE.DatLoader.FileTypes.MotionTable;
-using ACE.Database;
 
 namespace ACE.Server.WorldObjects
 {
@@ -153,6 +154,8 @@ namespace ACE.Server.WorldObjects
             SquelchManager = new SquelchManager(this);
 
             MagicState = new MagicState(this);
+
+            RecordCast = new RecordCast(this);
 
             return; // todo
 
@@ -356,7 +359,13 @@ namespace ACE.Server.WorldObjects
             Session.Network.EnqueueSend(new GameMessageSound(sourceId, sound, volume));
         }
 
- 
+        /// <summary>
+        /// Returns TRUE if a Player Killer has clicked logout after being involved in a PK battle
+        /// within the past 2 mins.
+        /// The server delays the logout for 20s, and the client remains in frozen state during this delay
+        /// </summary>
+        public bool PKLogout;
+
         /// <summary>
         /// Do the player log out work.<para />
         /// If you want to force a player to logout, use Session.LogOffPlayer().
@@ -366,7 +375,22 @@ namespace ACE.Server.WorldObjects
             if (PKLogoutActive && !forceImmediate)
             {
                 var pkTimer = PropertyManager.GetLong("pk_timer").Item;
-                return TimedLogout(pkTimer, clientSessionTerminatedAbruptly, WeenieError.YouHaveBeenInPKBattleTooRecently);
+                // return TimedLogout(pkTimer, clientSessionTerminatedAbruptly, WeenieError.YouHaveBeenInPKBattleTooRecently);
+
+                Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Logging out in {pkTimer}s...", ChatMessageType.Magic));
+
+                PKLogout = true;
+
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds((float)pkTimer);
+                actionChain.AddAction(this, () =>
+                {
+                    LogOut_Inner(clientSessionTerminatedAbruptly);
+                    Session.logOffRequestTime = DateTime.UtcNow;
+                });
+                actionChain.EnqueueChain();
+                return false;
             }
 
             var logoutTimer = PropertyManager.GetLong("logout_timer").Item;
@@ -764,6 +788,9 @@ namespace ACE.Server.WorldObjects
 
             // broadcast jump
             EnqueueBroadcast(new GameMessageVectorUpdate(this));
+
+            if (RecordCast.Enabled)
+                RecordCast.OnJump(jump);
         }
 
         /// <summary>
@@ -833,10 +860,10 @@ namespace ACE.Server.WorldObjects
             // send CO network messages for admin objects
             if (Adminvision && oldState != Adminvision)
             {
-                var adminObjs = PhysicsObj.ObjMaint.KnownObjects.Values.Where(o => o.WeenieObj.WorldObject != null && o.WeenieObj.WorldObject.Visibility);
+                var adminObjs = PhysicsObj.ObjMaint.GetKnownObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && o.WeenieObj.WorldObject.Visibility);
                 PhysicsObj.enqueue_objs(adminObjs);
 
-                var nodrawObjs = PhysicsObj.ObjMaint.KnownObjects.Values.Where(o => o.WeenieObj.WorldObject != null && ((o.WeenieObj.WorldObject.NoDraw ?? false) || o.WeenieObj.WorldObject.UiHidden));
+                var nodrawObjs = PhysicsObj.ObjMaint.GetKnownObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && ((o.WeenieObj.WorldObject.NoDraw ?? false) || o.WeenieObj.WorldObject.UiHidden));
 
                 foreach (var wo in nodrawObjs)
                     Session.Network.EnqueueSend(new GameMessageUpdateObject(wo.WeenieObj.WorldObject, Adminvision, Adminvision ? true : false));

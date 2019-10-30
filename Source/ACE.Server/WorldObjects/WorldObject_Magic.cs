@@ -17,6 +17,7 @@ using ACE.Server.Network.Structure;
 using ACE.Server.Managers;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Physics;
+using ACE.Server.WorldObjects.Managers;
 
 namespace ACE.Server.WorldObjects
 {
@@ -373,7 +374,8 @@ namespace ACE.Server.WorldObjects
 
             // NonComponentTargetType should be 0 for untargeted spells.
             // Return if the spell type is targeted with no target defined or the target is already dead.
-            if ((spellTarget == null || !spellTarget.IsAlive) && spell.NonComponentTargetType != 0)
+            if ((spellTarget == null || !spellTarget.IsAlive) && spell.NonComponentTargetType != ItemType.None
+                && (spell.DispelSchool != MagicSchool.ItemEnchantment || !PropertyManager.GetBool("item_dispel").Item))
             {
                 damage = 0;
                 return false;
@@ -889,6 +891,8 @@ namespace ACE.Server.WorldObjects
                                 targetPlayer.AdjustDungeon(teleportDest);
 
                                 targetPlayer.Teleport(teleportDest);
+
+                                targetPlayer.SendTeleportedViaMagicMessage(itemCaster, spell);
                             });
                             portalSendingChain.EnqueueChain();
                         }
@@ -918,6 +922,8 @@ namespace ACE.Server.WorldObjects
                                     fellow.AdjustDungeon(teleportDest);
 
                                     fellow.Teleport(teleportDest);
+
+                                    fellow.SendTeleportedViaMagicMessage(itemCaster, spell);
                                 });
                             }
                             portalSendingChain.EnqueueChain();
@@ -1221,6 +1227,9 @@ namespace ACE.Server.WorldObjects
                 var sourceCreature = this as Creature;
                 if (sourceCreature != null && targetCreature != null && sourceCreature != targetCreature)
                     sourceCreature.TryProcEquippedItems(targetCreature, false);
+
+                if (player != null && targetPlayer != null)
+                    Player.UpdatePKTimers(player, targetPlayer);
             }
             else
                 Proficiency.OnSuccessUse(player, player.GetCreatureSkill(Skill.CreatureEnchantment), difficultyMod);
@@ -1430,7 +1439,7 @@ namespace ACE.Server.WorldObjects
             if (sp.ProjectileTarget == null || sp.PhysicsObj == null || sp.ProjectileTarget.PhysicsObj == null)
                 return;
 
-            if (Location.SquaredDistanceTo(sp.ProjectileTarget.Location) < 4.0f)
+            //if (Location.SquaredDistanceTo(sp.ProjectileTarget.Location) < 4.0f)
                 sp.Info = new SpellProjectileInfo(sp);
 
             // Detonate point-blank projectiles immediately
