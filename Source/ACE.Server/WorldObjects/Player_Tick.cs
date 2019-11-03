@@ -151,12 +151,12 @@ namespace ACE.Server.WorldObjects
                 if (LumAugItemManaUsage != 0)
                     rate *= GetNegativeRatingMod(LumAugItemManaUsage);
 
-                if (!item.ItemManaConsumptionTimestamp.HasValue) item.ItemManaConsumptionTimestamp = DateTime.Now;
+                if (!item.ItemManaConsumptionTimestamp.HasValue) item.ItemManaConsumptionTimestamp = DateTime.UtcNow;
                 DateTime mostRecentBurn = item.ItemManaConsumptionTimestamp.Value;
 
                 var timePerBurn = -1 / rate;
 
-                var secondsSinceLastBurn = (DateTime.Now - mostRecentBurn).TotalSeconds;
+                var secondsSinceLastBurn = (DateTime.UtcNow - mostRecentBurn).TotalSeconds;
 
                 var delta = secondsSinceLastBurn / timePerBurn;
 
@@ -202,9 +202,9 @@ namespace ACE.Server.WorldObjects
                 {
                     // get time until empty
                     var secondsUntilEmpty = ((item.ItemCurMana - deltaExtra) * timePerBurn);
-                    if (secondsUntilEmpty <= 120 && (!item.ItemManaDepletionMessageTimestamp.HasValue || (DateTime.Now - item.ItemManaDepletionMessageTimestamp.Value).TotalSeconds > 120))
+                    if (secondsUntilEmpty <= 120 && (!item.ItemManaDepletionMessageTimestamp.HasValue || (DateTime.UtcNow - item.ItemManaDepletionMessageTimestamp.Value).TotalSeconds > 120))
                     {
-                        item.ItemManaDepletionMessageTimestamp = DateTime.Now;
+                        item.ItemManaDepletionMessageTimestamp = DateTime.UtcNow;
                         Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {item.Name} is low on Mana.", ChatMessageType.Magic));
                     }
                 }
@@ -307,6 +307,8 @@ namespace ACE.Server.WorldObjects
 
             PhysicsObj.update_object();
 
+            // sync ace position?
+
             if (!PhysicsObj.IsMovingOrAnimating && LastMoveToState != null)
             {
                 // apply latest MoveToState, if applicable
@@ -344,6 +346,10 @@ namespace ACE.Server.WorldObjects
 
                 if (distSq > PhysicsGlobals.EpsilonSq)
                 {
+                    /*var p = new Physics.Common.Position(newPosition);
+                    var dist = PhysicsObj.Position.Distance(p);
+                    Console.WriteLine($"Dist: {dist}");*/
+
                     if (newPosition.Landblock == 0x18A && Location.Landblock != 0x18A)
                         log.Info($"{Name} is getting swanky");
 
@@ -396,6 +402,9 @@ namespace ACE.Server.WorldObjects
             var landblockUpdate = CurrentLandblock != null && CurrentLandblock.Id.Landblock != newPosition.Cell >> 16;
 
             Location = newPosition;
+
+            if (RecordCast.Enabled)
+                RecordCast.Log($"CurPos: {Location.ToLOCString()}");
 
             SendUpdatePosition();
 
