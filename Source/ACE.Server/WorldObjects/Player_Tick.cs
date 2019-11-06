@@ -246,11 +246,6 @@ namespace ACE.Server.WorldObjects
             minterp.apply_raw_movement(true, allowJump);
         }
 
-        public bool OnAutoPos(ACE.Entity.Position newPosition, bool forceUpdate = false)
-        {
-            return UpdatePlayerPosition(newPosition, forceUpdate);
-        }
-
         public override bool UpdateObjectPhysics()
         {
             try
@@ -406,7 +401,10 @@ namespace ACE.Server.WorldObjects
             if (RecordCast.Enabled)
                 RecordCast.Log($"CurPos: {Location.ToLOCString()}");
 
-            SendUpdatePosition();
+            if (RequestedLocationBroadcast || DateTime.UtcNow - LastUpdatePosition >= TimeSpan.FromSeconds(1))
+                SendUpdatePosition();
+            else
+                Session.Network.EnqueueSend(new GameMessageUpdatePosition(this));
 
             if (!InUpdate)
                 LandblockManager.RelocateObjectForPhysics(this, true);
