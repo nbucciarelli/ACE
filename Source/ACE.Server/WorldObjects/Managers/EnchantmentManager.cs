@@ -992,7 +992,7 @@ namespace ACE.Server.WorldObjects.Managers
         /// </summary>
         public virtual float GetDamageMod()
         {
-            return GetMultiplicativeMod(PropertyFloat.DamageMod);
+            return GetAdditiveMod(PropertyFloat.DamageMod);
         }
 
         /// <summary>
