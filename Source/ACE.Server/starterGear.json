@@ -77,7 +77,37 @@
                     "weenieId": "20646",
                     "name": "Ust",
                     "stacksize": "1"
-                }
+                },
+                {
+                    "weenieId": "6331",
+                    "name": "Quality Pyreal Ingot",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "15271",
+                    "name": "Foci of Strife",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "15270",
+                    "name": "Foci of Verdancy",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "15269",
+                    "name": "Foci of Artifice",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "15268",
+                    "name": "Foci of Enchantment",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "43173",
+                    "name": "Foci of Shadow",
+                    "stacksize": "1"
+                },
             ],
             "heritage": [
                 {
@@ -197,11 +227,6 @@
                             "name": "Salivatory Goo",
                             "stacksize": "1"
                         },
-                        {
-                            "weenieId": "15271",
-                            "name": "Foci of Strife",
-                            "stacksize": "1"
-                        }
                     ],
                     "spells": [
                         {
@@ -273,11 +298,6 @@
                     "stacksize": "1"
                 },
                 {
-                    "weenieId": "15268",
-                    "name": "Foci of Enchantment",
-                    "stacksize": "1"
-                },
-                {
                     "weenieId": "691",
                     "name": "Lead Scarab",
                     "stacksize": "5"
@@ -323,11 +343,6 @@
                 {
                     "weenieId": "12748",
                     "name": "Training Wand",
-                    "stacksize": "1"
-                },
-                {
-                    "weenieId": "15269",
-                    "name": "Foci of Artifice",
                     "stacksize": "1"
                 },
                 {
@@ -381,11 +396,6 @@
                 {
                     "weenieId": "12748",
                     "name": "Training Wand",
-                    "stacksize": "1"
-                },
-                {
-                    "weenieId": "15270",
-                    "name": "Foci of Verdancy",
                     "stacksize": "1"
                 },
                 {
@@ -444,11 +454,6 @@
                 {
                     "weenieId": "12748",
                     "name": "Training Wand",
-                    "stacksize": "1"
-                },
-                {
-                    "weenieId": "15271",
-                    "name": "Foci of Strife",
                     "stacksize": "1"
                 },
                 {
@@ -608,11 +613,6 @@
                 {
                     "weenieId": "12748",
                     "name": "Training Wand",
-                    "stacksize": "1"
-                },
-                {
-                    "weenieId": "43173",
-                    "name": "Foci of Shadow",
                     "stacksize": "1"
                 },
                 {
