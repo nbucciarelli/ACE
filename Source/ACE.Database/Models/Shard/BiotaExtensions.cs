@@ -1157,7 +1157,12 @@ namespace ACE.Database.Models.Shard
                var enchantments = biota.BiotaPropertiesEnchantmentRegistry.Where(e => System.Array.IndexOf(spellsToRemove, e.SpellId) > -1 ? true : false).ToList();
 
                 foreach (var enchantment in enchantments)
-                    biota.BiotaPropertiesEnchantmentRegistry.Remove(enchantment);
+                {
+                    //biota.BiotaPropertiesEnchantmentRegistry.Remove(enchantment);
+                    //Dispel
+                    
+                }
+                    
             }
             finally
             {

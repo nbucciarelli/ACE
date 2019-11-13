@@ -367,13 +367,14 @@ namespace ACE.Server.WorldObjects.Managers
         /// </summary>
         public virtual void RemoveRareEnchantments()
         {
-            //var rareSpellIds = System.Enum.GetValues(typeof(RareEnchantment));
-            //var rareSpellIds = System.Enum.GetNames(typeof(RareEnchantment));
-            //foreach (RareEnchantment r in System.Enum.GetValues(typeof(RareEnchantment)))
-            //    GlobalEventManager.GlobalWorldBroadcast(r.ToString());
-            var rareSpellIds = new int[] { 3681 };
-            WorldObject.Biota.RemoveEnchantmentsById(rareSpellIds, WorldObject.BiotaDatabaseLock);
-            WorldObject.ChangesDetected = true;
+            List<int> rareSpellIds = new List<int>();
+            foreach (var enumValue in Enum.GetValues(typeof(RareEnchantment)))
+            {
+                rareSpellIds.Add((int)enumValue);
+            }
+
+            var enchantments = WorldObject.Biota.BiotaPropertiesEnchantmentRegistry.Where(e => rareSpellIds.Contains(e.SpellId) ? true : false).ToList();
+            this.Dispel(enchantments);
         }
 
         /// <summary>

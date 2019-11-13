@@ -1205,6 +1205,12 @@ namespace ACE.Server.WorldObjects
 
             if (spell.IsHarmful)
             {
+                if (player != null && targetPlayer != null)
+                {
+                    player.EnchantmentManager.RemoveRareEnchantments();
+                    targetPlayer.EnchantmentManager.RemoveRareEnchantments();
+                }
+
                 var resisted = ResistSpell(target, spell);
                 if (resisted == true)
                     return false;
