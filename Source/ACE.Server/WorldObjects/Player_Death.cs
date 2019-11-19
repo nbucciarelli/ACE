@@ -15,6 +15,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Riptide;
 
 namespace ACE.Server.WorldObjects
 {
@@ -202,7 +203,10 @@ namespace ACE.Server.WorldObjects
                 SetLifestoneProtection();
 
                 if (IsPKDeath(topDamager) || IsPKLiteDeath(topDamager))
+                {
                     SetMinimumTimeSincePK();
+                    GlobalEventManager.SendDeathDetailsViaHTTP(topDamager, lastDamager, this);
+                }
 
                 IsBusy = false;
             });

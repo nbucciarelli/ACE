@@ -556,7 +556,12 @@ namespace ACE.Server.Managers
                 ("popup_header", new Property<string>("Welcome to Asheron's Call!", "Welcome message displayed when you log in")),
                 ("popup_welcome", new Property<string>("To begin your training, speak to the Society Greeter. Walk up to the Society Greeter using the 'W' key, then double-click on her to initiate a conversation.", "Welcome message popup in training halls")),
                 ("popup_motd", new Property<string>("", "Popup message of the day")),
-                ("server_motd", new Property<string>("", "Server message of the day"))
+                ("server_motd", new Property<string>("", "Server message of the day")),
+                ("web_portal_url", new Property<string>("", "URL for the web portal")),
+                ("web_portal_api_version", new Property<string>("", "API Version for the web portal")),
+                ("web_portal_api_username", new Property<string>("", "Username for the API portal")),
+                ("web_portal_api_password", new Property<string>("", "Password for the API portal")),
+                ("web_portal_api_jwt", new Property<string>("", "JWT for the API portal"))
                 );
     }
 }

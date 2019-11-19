@@ -151,6 +151,9 @@ namespace ACE.Server
             log.Info("Initializing CommandManager...");
             CommandManager.Initialize();
 
+            log.Info("Initializing Riptide API Portal...");
+            GlobalEventManager.AuthWebPortal();
+
             if (!PropertyManager.GetBool("world_closed", false).Item)
             {
                 WorldManager.Open(null);
