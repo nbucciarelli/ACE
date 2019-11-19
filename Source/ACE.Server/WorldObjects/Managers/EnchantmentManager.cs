@@ -320,12 +320,6 @@ namespace ACE.Server.WorldObjects.Managers
 
                 if (sound && entry.SpellCategory != SpellCategory_Cooldown)
                     Player.Session.Network.EnqueueSend(new GameMessageSound(Player.Guid, Sound.SpellExpire, 1.0f));
-
-                if (entry.SpellCategory != SpellCategory_Cooldown)
-                {
-                    var spell = new Spell(spellID);
-                    Player.HandleMaxVitalUpdate(spell);
-                }
             }
             else
             {
@@ -489,12 +483,7 @@ namespace ACE.Server.WorldObjects.Managers
                 WorldObject.ChangesDetected = true;
 
             if (Player != null)
-            {
                 Player.Session.Network.EnqueueSend(new GameEventMagicDispelEnchantment(Player.Session, (ushort)entry.SpellId, entry.LayerId));
-
-                var spell = new Spell(spellID);
-                Player.HandleMaxVitalUpdate(spell);
-            }
         }
 
         /// <summary>
@@ -509,12 +498,6 @@ namespace ACE.Server.WorldObjects.Managers
             {
                 if (WorldObject.Biota.TryRemoveEnchantment(entry, out _, WorldObject.BiotaDatabaseLock))
                     WorldObject.ChangesDetected = true;
-
-                if (Player != null)
-                {
-                    var spell = new Spell(entry.SpellId);
-                    Player.HandleMaxVitalUpdate(spell);
-                }
             }
             if (Player != null)
                 Player.Session.Network.EnqueueSend(new GameEventMagicDispelMultipleEnchantments(Player.Session, entries));

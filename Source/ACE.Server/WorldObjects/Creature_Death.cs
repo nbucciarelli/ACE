@@ -27,12 +27,12 @@ namespace ACE.Server.WorldObjects
         /// <param name="lastDamager">The last damager that landed the death blow</param>
         /// <param name="damageType">The damage type for the death message</param>
         /// <param name="criticalHit">True if the death blow was a critical hit, generates a critical death message</param>
-        public virtual DeathMessage OnDeath(WorldObject lastDamager, DamageType damageType, bool criticalHit = false)
+        public virtual DeathMessage OnDeath(DamageHistoryInfo lastDamager, DamageType damageType, bool criticalHit = false)
         {
             IsTurning = false;
             IsMoving = false;
 
-            EmoteManager.OnDeath(DamageHistory);
+            EmoteManager.OnDeath(lastDamager?.TryGetAttacker());
 
             OnDeath_GrantXP();
 
@@ -43,16 +43,15 @@ namespace ACE.Server.WorldObjects
         }
 
 
-        public DeathMessage GetDeathMessage(WorldObject lastDamager, DamageType damageType, bool criticalHit = false)
+        public DeathMessage GetDeathMessage(DamageHistoryInfo lastDamager, DamageType damageType, bool criticalHit = false)
         {
             var deathMessage = Strings.GetDeathMessage(damageType, criticalHit);
 
-            if (lastDamager == null || lastDamager == this)
-                deathMessage = Strings.General[1];
+            if (lastDamager == null || lastDamager.Guid == Guid)
+                return Strings.General[1];
 
             // if killed by a player, send them a message
-            var playerKiller = lastDamager as Player;
-            if (playerKiller != null && playerKiller != this)
+            if (lastDamager.IsPlayer)
             {
                 if (criticalHit && this is Player)
                     deathMessage = Strings.PKCritical[0];
@@ -60,8 +59,12 @@ namespace ACE.Server.WorldObjects
                 var killerMsg = string.Format(deathMessage.Killer, Name);
 
                 // todo: verify message type
-                playerKiller.Session.Network.EnqueueSend(new GameMessageSystemChat(killerMsg, ChatMessageType.Broadcast));
-                GlobalEventManager.OnPKDeath(playerKiller, this as Player, deathMessage);
+                var playerKiller = lastDamager.TryGetAttacker() as Player;
+
+                if (playerKiller != null) {
+                    playerKiller.Session.Network.EnqueueSend(new GameMessageSystemChat(killerMsg, ChatMessageType.Broadcast));
+                    GlobalEventManager.OnPKDeath(playerKiller, this as Player, deathMessage);
+                }
             }
             return deathMessage;
         }
@@ -77,15 +80,21 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Performs the full death sequence for non-Player creatures
         /// </summary>
-        protected virtual void Die(WorldObject lastDamager, WorldObject topDamager)
+        protected virtual void Die(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
             UpdateVital(Health, 0);
 
             if (topDamager != null)
+            {
                 KillerId = topDamager.Guid.Full;
 
-            if (topDamager is Player)
-                topDamager.CreatureKills++;
+                if (topDamager.IsPlayer)
+                {
+                    var topDamagerPlayer = topDamager.TryGetAttacker();
+                    if (topDamagerPlayer != null)
+                        topDamagerPlayer.CreatureKills = (topDamagerPlayer.CreatureKills ?? 0) + 1;
+                }
+            }
 
             CurrentMotionState = new Motion(MotionStance.NonCombat, MotionCommand.Ready);
             //IsMonster = false;
@@ -125,7 +134,8 @@ namespace ACE.Server.WorldObjects
             else
             {
                 OnDeath();
-                Die(smiter, smiter);
+                var smiterInfo = new DamageHistoryInfo(smiter);
+                Die(smiterInfo, smiterInfo);
             }
         }
 
@@ -144,20 +154,17 @@ namespace ACE.Server.WorldObjects
 
             foreach (var kvp in DamageHistory.TotalDamage)
             {
-                var damager = kvp.Value.TryGetWorldObject();
-                var totalDamage = kvp.Value.Value;
+                var damager = kvp.Value.TryGetAttacker();
 
                 var playerDamager = damager as Player;
-                if (playerDamager == null)
-                {
-                    var petDamager = damager as CombatPet;
-                    if (petDamager == null)
-                        continue;
 
-                    playerDamager = petDamager.P_PetOwner;
-                    if (playerDamager == null)
-                        continue;
-                }
+                if (playerDamager == null && kvp.Value.PetOwner != null)
+                    playerDamager = kvp.Value.TryGetPetOwner();
+
+                if (playerDamager == null)
+                    continue;
+
+                var totalDamage = kvp.Value.TotalDamage;
 
                 var damagePercent = totalDamage / Health.MaxValue;
                 var totalXP = (XpOverride ?? 0) * damagePercent;
@@ -180,7 +187,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Create a corpse for both creatures and players currently
         /// </summary>
-        protected void CreateCorpse(WorldObject killer)
+        protected void CreateCorpse(DamageHistoryInfo killer)
         {
             if (NoCorpse)
             {
@@ -258,10 +265,14 @@ namespace ACE.Server.WorldObjects
                     if (!string.IsNullOrWhiteSpace(killer.Name))
                         killerName = killer.Name.TrimStart('+');  // vtank requires + to be stripped for regex matching.
 
-                    if (killer is CombatPet)
-                        corpse.KillerId = killer.PetOwner.Value;
-                    else
-                        corpse.KillerId = killer.Guid.Full;
+                    corpse.KillerId = killer.Guid.Full;
+
+                    if (killer.PetOwner != null)
+                    {
+                        var petOwner = killer.TryGetPetOwner();
+                        if (petOwner != null)
+                            corpse.KillerId = petOwner.Guid.Full;
+                    }
                 }
             }
 
@@ -291,9 +302,19 @@ namespace ACE.Server.WorldObjects
             {
                 corpse.IsMonster = true;
                 GenerateTreasure(killer, corpse);
-                if (killer is Player && (Level >= 100 || Level >= killer.Level + 5))
+
+                if (killer != null && killer.IsPlayer)
                 {
-                    CanGenerateRare = true;
+                    if (Level >= 100)
+                    {
+                        CanGenerateRare = true;
+                    }
+                    else
+                    {
+                        var killerPlayer = killer.TryGetAttacker();
+                        if (killerPlayer != null && Level >= killerPlayer.Level + 5)
+                            CanGenerateRare = true;
+                    }
                 }
             }
 
@@ -325,7 +346,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Transfers generated treasure from creature to corpse
         /// </summary>
-        private List<WorldObject> GenerateTreasure(WorldObject killer, Corpse corpse)
+        private List<WorldObject> GenerateTreasure(DamageHistoryInfo killer, Corpse corpse)
         {
             var droppedItems = new List<WorldObject>();
 
@@ -388,7 +409,7 @@ namespace ACE.Server.WorldObjects
             return droppedItems;
         }
 
-        public void DoCantripLogging(WorldObject killer, WorldObject wo)
+        public void DoCantripLogging(DamageHistoryInfo killer, WorldObject wo)
         {
             var epicCantrips = wo.EpicCantrips;
             var legendaryCantrips = wo.LegendaryCantrips;

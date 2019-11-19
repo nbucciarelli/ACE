@@ -464,9 +464,11 @@ namespace ACE.Server.WorldObjects
 
                 var weaponResistanceMod = GetWeaponResistanceModifier(sourceCreature, attackSkill, Spell.DamageType);
 
+                var resistanceMod = Math.Max(0.0f, target.GetResistanceMod(resistanceType, null, weaponResistanceMod));
+
                 finalDamage = baseDamage + damageBonus + warSkillBonus;
-                finalDamage *= target.GetResistanceMod(resistanceType, null, weaponResistanceMod)
-                    * elementalDmgBonus * slayerBonus * absorbMod;
+
+                finalDamage *= resistanceMod * elementalDmgBonus * slayerBonus * absorbMod;
 
                 return finalDamage;
             }
@@ -693,7 +695,8 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                target.OnDeath(ProjectileSource, Spell.DamageType, critical);
+                var lastDamager = ProjectileSource != null ? new DamageHistoryInfo(ProjectileSource) : null;
+                target.OnDeath(lastDamager, Spell.DamageType, critical);
                 target.Die();
             }
         }
