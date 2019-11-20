@@ -92,7 +92,7 @@ namespace ACE.Server.Riptide
             }
         }
 
-        public static void SendDeathDetailsViaHTTP(WorldObject topDamager, WorldObject killshot, WorldObject victim)
+        public static void SendDeathDetailsViaHTTP(DamageHistoryInfo topDamager, DamageHistoryInfo killshot, WorldObject victim)
         {
             var web_portal_url = PropertyManager.GetString("web_portal_url").Item;
             var web_portal_api_version = PropertyManager.GetString("web_portal_api_version").Item;
