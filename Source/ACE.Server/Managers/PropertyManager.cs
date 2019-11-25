@@ -516,7 +516,8 @@ namespace ACE.Server.Managers
                                                                  "if FALSE, players start with mastery of 1 melee and 1 ranged weapon type based on heritage, and can later re-select these 2 masteries")),
                 ("use_wield_requirements", new Property<bool>(true, "disable this to bypass wield requirements. mostly for dev debugging")),
                 ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world")),
-                ("global_pk_kill_messages", new Property<bool>(false, "enable this to make PK kills a global death message."))
+                ("global_pk_kill_messages", new Property<bool>(false, "enable this to make PK kills a global death message.")),
+                ("web_portal_api_killshot_on", new Property<bool>(true, "enable the web API for Killshots"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
