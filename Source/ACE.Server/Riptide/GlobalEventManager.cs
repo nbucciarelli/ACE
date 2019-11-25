@@ -94,38 +94,41 @@ namespace ACE.Server.Riptide
 
         public static void SendDeathDetailsViaHTTP(DamageHistoryInfo topDamager, DamageHistoryInfo killshot, WorldObject victim)
         {
-            var web_portal_url = PropertyManager.GetString("web_portal_url").Item;
-            var web_portal_api_version = PropertyManager.GetString("web_portal_api_version").Item;
-            var web_portal_api_jwt = PropertyManager.GetString("web_portal_api_jwt").Item;
-            if (!string.IsNullOrEmpty(web_portal_url) || !string.IsNullOrEmpty(web_portal_api_version) || !string.IsNullOrEmpty(web_portal_api_jwt))
+            log.Info($"KILLSHOT. killer:{topDamager.Guid.Full}, victim:{victim.Guid.Full}, finisher:{killshot.Guid.Full}");
+            var web_portal_api_killshot_on = PropertyManager.GetBool("web_portal_api_killshot_on").Item;
+            if(web_portal_api_killshot_on)
             {
-                var client = new RestClient(web_portal_url);
-                // client.Authenticator = new HttpBasicAuthenticator(username, password);
-
-                var request = new RestRequest("killshot" + web_portal_api_version + "/deaths", Method.POST);
-                request.AddHeader("Content-type", "application/json");
-                request.AddHeader("Authorization", web_portal_api_jwt);
-                request.AddJsonBody(new
+                var web_portal_url = PropertyManager.GetString("web_portal_url").Item;
+                var web_portal_api_version = PropertyManager.GetString("web_portal_api_version").Item;
+                var web_portal_api_jwt = PropertyManager.GetString("web_portal_api_jwt").Item;
+                if (!string.IsNullOrEmpty(web_portal_url) || !string.IsNullOrEmpty(web_portal_api_version) || !string.IsNullOrEmpty(web_portal_api_jwt))
                 {
-                    killer = topDamager.Guid.Full,
-                    victim = victim.Guid.Full,
-                    finisher = killshot.Guid.Full,
-                });
+                    var client = new RestClient(web_portal_url);
+                    // client.Authenticator = new HttpBasicAuthenticator(username, password);
 
-                // easy async support
-                client.ExecuteAsync(request, response => {
-                    // Nothing here
-                    var x = 1;
+                    var request = new RestRequest("killshot" + web_portal_api_version + "/deaths", Method.POST);
+                    request.AddHeader("Content-type", "application/json");
+                    request.AddHeader("Authorization", web_portal_api_jwt);
+                    request.AddJsonBody(new
+                    {
+                        killer = topDamager.Guid.Full,
+                        victim = victim.Guid.Full,
+                        finisher = killshot.Guid.Full,
+                    });
 
-                });
-            }
-            else
-            {
-                log.Info("ERROR: Riptide API Web Portal not initialized");
+                    // easy async support
+                    client.ExecuteAsync(request, response => {
+                        // Nothing here
+                        var x = 1;
+
+                    });
+                }
+                else
+                {
+                    log.Info("ERROR: Riptide API Web Portal not initialized");
+                }
             }
         }
-
-
     }
 
     public class JWT
