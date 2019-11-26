@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using ACE.Common;
 using ACE.Common.Extensions;
 using ACE.Database.Models.Shard;
 using ACE.Entity.Enum;
@@ -1301,6 +1302,7 @@ namespace ACE.Server.WorldObjects.Managers
             var creature = WorldObject as Creature;
             if (creature == null) return;
 
+            bool isDead = false;
             var damagers = new Dictionary<WorldObject, float>();
 
             // get the total tick amount
@@ -1324,6 +1326,10 @@ namespace ACE.Server.WorldObjects.Managers
                     continue;
                 }
 
+                // if a PKType with Enduring Enchantment has died, ensure they don't continue to take DoT from PK sources
+                if (WorldObject is Player _player && damager is Player && !_player.IsPKType)
+                    continue;
+
                 // get damage / damage resistance rating here for now?
                 var heritageMod = 1.0f;
                 if (damager is Player player)
@@ -1340,6 +1346,13 @@ namespace ACE.Server.WorldObjects.Managers
 
                 tickAmount *= damageRatingMod * damageResistRatingMod * dotResistRatingMod;
 
+                // make sure the target's current health is not exceeded
+                if (tickAmountTotal + tickAmount >= creature.Health.Current)
+                {
+                    tickAmount = creature.Health.Current - tickAmountTotal;
+                    isDead = true;
+                }
+
                 if (damagers.ContainsKey(damager))
                     damagers[damager] += tickAmount;
                 else
@@ -1348,6 +1361,8 @@ namespace ACE.Server.WorldObjects.Managers
                 creature.DamageHistory.Add(damager, damageType, (uint)Math.Round(tickAmount));
 
                 tickAmountTotal += tickAmount;
+
+                if (isDead) break;
             }
 
             creature.TakeDamageOverTime(tickAmountTotal, damageType);
