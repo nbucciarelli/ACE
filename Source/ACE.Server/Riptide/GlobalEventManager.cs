@@ -31,7 +31,7 @@ namespace ACE.Server.Riptide
                 player.Session.WorldBroadcast(message);
             }
         }
-        public static void OnPKDeath(Player killer, Player victim, DeathMessage deathMessage)
+        public static void BroadcastKillshotInChat(Player killer, Player victim, DeathMessage deathMessage)
         {
             try
             {

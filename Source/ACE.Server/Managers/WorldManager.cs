@@ -22,6 +22,7 @@ using ACE.Server.Physics;
 using ACE.Server.Physics.Common;
 
 using Position = ACE.Entity.Position;
+using ACE.Server.Riptide;
 
 namespace ACE.Server.Managers
 {
@@ -99,6 +100,7 @@ namespace ACE.Server.Managers
             }
 
             var start = DateTime.UtcNow;
+            RiptideLogger.PlayerLogin(session.Player, character);
             DatabaseManager.Shard.GetPossessedBiotasInParallel(character.Id, biotas =>
             {
                 log.Debug($"GetPossessedBiotasInParallel for {character.Name} took {(DateTime.UtcNow - start).TotalMilliseconds:N0} ms");
