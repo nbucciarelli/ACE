@@ -36,6 +36,14 @@ namespace ACE.Server.Command.Handlers
 {
     public static class RiptideCommands
     {
+        [CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 3, "Mule an item.")]
+        public static void HandleRiptideMuleItem(Session session, params string[] parameters)
+        {
+            var itemId = parameters[0];
+            var fromId = parameters[1];
+            var toId = parameters[2];
+
+        }
         [CommandHandler("rt-showprops", AccessLevel.Admin, CommandHandlerFlag.None, 0, "Shows Riptide features.")]
         public static void HandleRiptideShowProperties(Session session, params string[] paramters)
         {

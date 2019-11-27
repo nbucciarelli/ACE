@@ -63,7 +63,7 @@ namespace ACE.Server.WorldObjects
 
                 if (playerKiller != null) {
                     playerKiller.Session.Network.EnqueueSend(new GameMessageSystemChat(killerMsg, ChatMessageType.Broadcast));
-                    GlobalEventManager.OnPKDeath(playerKiller, this as Player, deathMessage);
+                    GlobalEventManager.BroadcastKillshotInChat(playerKiller, this as Player, deathMessage);
                 }
             }
             return deathMessage;

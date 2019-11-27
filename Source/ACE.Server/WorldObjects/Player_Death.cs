@@ -219,6 +219,7 @@ namespace ACE.Server.WorldObjects
                 {
                     SetMinimumTimeSincePK();
                     GlobalEventManager.SendDeathDetailsViaHTTP(topDamager, lastDamager, this);
+                    RiptideLogger.Killshot(topDamager, this, lastDamager);
                 }
 
                 IsBusy = false;
