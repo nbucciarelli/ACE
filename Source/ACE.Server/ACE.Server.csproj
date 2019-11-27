@@ -52,6 +52,10 @@
 
   <ItemGroup>
     <Folder Include="Riptide\" />
+    <Folder Include="Riptide\Managers\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Riptide\RiptideDatabaseManager.cs" />
   </ItemGroup>
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="if not exist &quot;$(ProjectDir)Config.js&quot; if exist &quot;$(ProjectDir)Config.json&quot; move &quot;$(ProjectDir)Config.json&quot; &quot;$(ProjectDir)Config.js&quot;&#xD;&#xA;copy &quot;$(ProjectDir)Config.js&quot; &quot;$(TargetDir)Config.js&quot;" Condition="'$(OS)' == 'Windows_NT'" />

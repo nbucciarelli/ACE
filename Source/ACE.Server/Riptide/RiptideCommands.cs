@@ -27,10 +27,10 @@ using ACE.Server.Physics.Entity;
 using ACE.Server.Riptide;
 using ACE.Server.WorldObjects;
 using ACE.Server.WorldObjects.Entity;
-
-
 using Position = ACE.Entity.Position;
 using Spell = ACE.Server.Entity.Spell;
+using ACE.Server.Network.Managers;
+using ACE.Server.Riptide.Managers;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -103,21 +103,22 @@ namespace ACE.Server.Command.Handlers
             session.Player.DoWorldBroadcast($"{sb}", ChatMessageType.WorldBroadcast);
         }
 
-        //[CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 3, "Mule an item.")]
-        //public static void HandleRiptideMuleItem(Session session, params string[] parameters)
-        //{
-        //    //session.UpdateCharacters()
-        //    try
-        //    {
-        //        Biota item = ResolveBiota(parameters[0]);  // item to transfer.
-        //        Character source = ResolveCharacter(parameters[1]);  // current owner.
-        //        Character target = ResolveCharacter(parameters[2]);  // new owner.
-        //        TransferItemWithNetworking(item, source, target);
-        //    } catch (Exception e)
-        //    {
-        //        CommandHandlerHelper.WriteOutputInfo(session, e.Message, ChatMessageType.Help);
-        //    }
-        //}
+        [CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 2, "Mule an item.")]
+        public static void HandleRiptideMuleItem(Session session, params string[] parameters)
+        {
+            //session.UpdateCharacters()
+            try
+            {
+                Character sender = ResolveCharacter(parameters[0]);
+                Character recipient = ResolveCharacter(parameters[1]);
+                WorldObject item = ResolveWorldObject(parameters[2]);
+                RiptideManager.Inventory.TradeItem(sender, recipient, item, -1);
+            }
+            catch (Exception e)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, e.Message, ChatMessageType.Help);
+            }
+        }
 
         private static Biota ResolveBiota(string param)
         {
@@ -129,6 +130,20 @@ namespace ACE.Server.Command.Handlers
             } else
             {
                 return biota;
+            }
+        }
+
+        private static WorldObject ResolveWorldObject(string param)
+        {
+            uint id = uint.Parse(param);
+            WorldObject worldObject = RiptideManager.Database.GetWorldObject(id);
+            if (worldObject == null)
+            {
+                throw new Exception($"WorldObject not found: {param}");
+            }
+            else
+            {
+                return worldObject;
             }
         }
 
