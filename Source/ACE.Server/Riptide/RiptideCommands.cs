@@ -36,14 +36,6 @@ namespace ACE.Server.Command.Handlers
 {
     public static class RiptideCommands
     {
-        [CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 3, "Mule an item.")]
-        public static void HandleRiptideMuleItem(Session session, params string[] parameters)
-        {
-            var itemId = parameters[0];
-            var fromId = parameters[1];
-            var toId = parameters[2];
-
-        }
         [CommandHandler("rt-showprops", AccessLevel.Admin, CommandHandlerFlag.None, 0, "Shows Riptide features.")]
         public static void HandleRiptideShowProperties(Session session, params string[] paramters)
         {
@@ -109,6 +101,48 @@ namespace ACE.Server.Command.Handlers
             sb.Append($"CurrentAppraisalTarget: {session.Player.CurrentAppraisalTarget}\n");
 
             session.Player.DoWorldBroadcast($"{sb}", ChatMessageType.WorldBroadcast);
+        }
+
+        //[CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 3, "Mule an item.")]
+        //public static void HandleRiptideMuleItem(Session session, params string[] parameters)
+        //{
+        //    //session.UpdateCharacters()
+        //    try
+        //    {
+        //        Biota item = ResolveBiota(parameters[0]);  // item to transfer.
+        //        Character source = ResolveCharacter(parameters[1]);  // current owner.
+        //        Character target = ResolveCharacter(parameters[2]);  // new owner.
+        //        TransferItemWithNetworking(item, source, target);
+        //    } catch (Exception e)
+        //    {
+        //        CommandHandlerHelper.WriteOutputInfo(session, e.Message, ChatMessageType.Help);
+        //    }
+        //}
+
+        private static Biota ResolveBiota(string param)
+        {
+            uint id = uint.Parse(param);
+            Biota biota = DatabaseManager.Shard.GetBiota(id);
+            if (biota == null)
+            {
+                throw new Exception($"Biota not found: {param}");
+            } else
+            {
+                return biota;
+            }
+        }
+
+        private static Character ResolveCharacter(string param)
+        {
+            uint id = uint.Parse(param);
+            Character character = DatabaseManager.Shard.GetCharacterByGuid(id);
+            if (character == null)
+            {
+                throw new Exception($"Character not found: {param}");
+            } else
+            {
+                return character;
+            }
         }
     }
 }

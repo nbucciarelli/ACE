@@ -100,7 +100,7 @@ namespace ACE.Server.Managers
             }
 
             var start = DateTime.UtcNow;
-            RiptideLogger.PlayerLogin(session.Player, character);
+            RiptideLogger.PlayerLogin(character);
             DatabaseManager.Shard.GetPossessedBiotasInParallel(character.Id, biotas =>
             {
                 log.Debug($"GetPossessedBiotasInParallel for {character.Name} took {(DateTime.UtcNow - start).TotalMilliseconds:N0} ms");

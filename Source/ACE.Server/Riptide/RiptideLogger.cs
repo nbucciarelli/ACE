@@ -15,10 +15,10 @@ namespace ACE.Server.Riptide
             // called on Player Death.
             try
             {
-                var killer_id = killer.Guid;
-                var finisher_id = finisher.Guid;
-                var victim_id = victim.Guid;
-                log.Debug($"[KILLSHOT.V1] Killer.Guid: {killer_id}, Victim.Guid: {victim_id}, Finisher.Guid: {finisher_id}, Killer.Name: {killer.Name}, Victim.Name: {victim.Name}, Finisher.Name: {finisher.Name}");
+                var killer_id = killer.Guid.Full;
+                var finisher_id = finisher.Guid.Full;
+                var victim_id = victim.Guid.Full;
+                log.Info($"[KILLSHOT.V1] Killer.Id: {killer_id}, Victim.Id: {victim_id}, Finisher.Id: {finisher_id}, Killer.Name: {killer.Name}, Victim.Name: {victim.Name}, Finisher.Name: {finisher.Name}");
             } catch (Exception e)
             {
                 log.Error(e);
@@ -30,18 +30,18 @@ namespace ACE.Server.Riptide
             // Track when a toon leaves the game.
             try
             {
-                log.Debug($"[LOGOUT.V1] Account.Name: {player.Account.AccountName}, Player.Name: {player.Character.Name}");
+                log.Info($"[LOGOUT.V1] Player.Name: {player.Character.Name}, Player.Id: {player.Character.Id}");
             } catch (Exception e) {
                 log.Error(e);
             }
         }
 
-        public static void PlayerLogin(Player player, Character character)
+        public static void PlayerLogin(Character character)
         {
             // Track when a toon joins the game.
             try
             {
-                log.Debug($"[LOGIN.V1] Account.Name: {player.Account.AccountName} Player.Name: {character.Name}");
+                log.Info($"[LOGIN.V1] Player.Name: {character.Name}, Player.Id: {character.Id}");
             } catch (Exception e)
             {
                 log.Error(e);

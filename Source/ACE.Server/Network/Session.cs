@@ -15,14 +15,13 @@ using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.GameMessages;
 using ACE.Server.Network.Managers;
-
+using ACE.Server.Riptide;
 
 namespace ACE.Server.Network
 {
     public class Session
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
 
         public IPEndPoint EndPoint { get; }
 
@@ -180,7 +179,10 @@ namespace ACE.Server.Network
                 var result = Player.LogOut(false, forceImmediate);
 
                 if (result)
+                {
                     logOffRequestTime = DateTime.UtcNow;
+                    RiptideLogger.PlayerLogout(Player);
+                }
             }
         }
 
