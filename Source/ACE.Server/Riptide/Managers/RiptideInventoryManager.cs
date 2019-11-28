@@ -1,14 +1,20 @@
 using System;
+using System.Collections.Generic;
 using ACE.Database;
 using ACE.Database.Models.Shard;
+using ACE.Entity;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Factories;
+using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Managers;
 using ACE.Server.WorldObjects;
 using log4net;
+
+// note to self: check out the PlayerManager
+// you can log out/log in players.
 
 namespace ACE.Server.Riptide.Managers
 {
@@ -17,6 +23,7 @@ namespace ACE.Server.Riptide.Managers
         Character GetOwner(WorldObject item);
         Container GetContainer(WorldObject item);
         Container GetContainer(Character character);
+        IPlayerInventory GetInventory(Character character);
         void CreateItem(Character recipient, WorldObject item);
         void TradeItem(Character sender, Character recipient, WorldObject item, int amount);
     }
@@ -24,6 +31,20 @@ namespace ACE.Server.Riptide.Managers
     internal class RiptideInventoryManager: IInventoryManager
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public IPlayerInventory GetInventory(Character character)
+        {
+            Biota biota = RiptideManager.Database.GetBiota(character.Id);
+            return new PlayerInventory(biota);
+        }
+
+        //public Dictionary<ObjectGuid, WorldObject> GetInventory(uint character_id)
+        //{
+        //    Player onlinePlayer = PlayerManager.GetOnlinePlayer(character_id);
+        //    if (onlinePlayer != null)
+        //        return onlinePlayer.Inventory;
+        //    throw new NotImplementedException($"Offline player inventory not yet implemented!");
+        //}
 
         public Character GetOwner(WorldObject item)
         {
@@ -86,10 +107,15 @@ namespace ACE.Server.Riptide.Managers
                 throw new Exception("Recipient cannot be null.");
             if (item == null)
                 throw new Exception("Item cannot be null.");
+
+            log.Info($"TradeItem('{sender.Name}', '{recipient.Name}', '{item.Name}'/{item.Guid.Full}, {amount})");
             WorldObject created; // this is only used when splitting stacks.
-            SplitStack(item, amount, out created, save: true);
-            WorldObject package = (created == null) ? item : created;
+            SplitStack(item, amount, out created, save: false);
+            log.Info($"SplitStack -> created = {created != null}");
+            WorldObject package = (created != null) ? created : item;
+            log.Info($"SplitStack -> package = {package.Guid.Full}");
             bool success = _TradeItem(sender, recipient, package);
+            log.Info($"_TradeItem -> success = {success}");
             if (!success)
             {
                 log.Error($"Failed to trade items!");
@@ -117,9 +143,15 @@ namespace ACE.Server.Riptide.Managers
         {
             bool result = true;
             if (result)
+            {
                 result &= RemoveItemFromInventory(sender, item);
+                log.Info($"RemoveItemFromInventory() -> {result}");
+            }
             if (result)
+            {
                 result &= AddItemToInventory(recipient, item);
+                log.Info($"AddItemToInventory() -> {result}");
+            }
             return result;
         }
 
@@ -133,6 +165,7 @@ namespace ACE.Server.Riptide.Managers
                 /** Do it WITH networking */
                 if (session.Player.GetFreeInventorySlots(true) == 0)
                     throw new Exception($"Character {character.Id} has no free inventory space!");
+                log.Info($"session.Player.TryAddToInventory()");
                 return session.Player.TryAddToInventory(item, placementPosition: 0);
             } else
             {
@@ -153,7 +186,8 @@ namespace ACE.Server.Riptide.Managers
                 if (session != null)
                 {
                     // the current owner is logged into the game.
-                    return session.Player.TryConsumeFromInventoryWithNetworking(item);
+                    log.Info($"session.Player.TryConsumeFromInventoryWithNetworking()");
+                    return session.Player.TryConsumeFromInventoryWithNetworking(item); // fails 
                 } else
                 {
                     // the current owner is not logged in right now.
@@ -164,7 +198,8 @@ namespace ACE.Server.Riptide.Managers
                         return false;
                     } else
                     {
-                        return container.TryRemoveFromInventory(item.Guid);
+                        log.Info($"container.TryRemoveFromInventory()");
+                        return container.TryRemoveFromInventory(item.Guid); // also fails   
                     }
                 }
             }

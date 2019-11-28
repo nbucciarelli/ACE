@@ -31,6 +31,8 @@ using Position = ACE.Entity.Position;
 using Spell = ACE.Server.Entity.Spell;
 using ACE.Server.Network.Managers;
 using ACE.Server.Riptide.Managers;
+using System.Threading;
+using ACE.Server.Entity.Actions;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -100,10 +102,11 @@ namespace ACE.Server.Command.Handlers
             sb.Append($"ProjectileTarget: {session.Player.ProjectileTarget}\n");
             sb.Append($"CurrentAppraisalTarget: {session.Player.CurrentAppraisalTarget}\n");
 
-            session.Player.DoWorldBroadcast($"{sb}", ChatMessageType.WorldBroadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"{sb}");
+            //session.Player.DoWorldBroadcast($"{sb}", ChatMessageType.WorldBroadcast);
         }
 
-        [CommandHandler("rt-mule", AccessLevel.Admin, CommandHandlerFlag.None, 2, "Mule an item.")]
+        [CommandHandler("rtmule", AccessLevel.Admin, CommandHandlerFlag.None, 2, "Mule an item.")]
         public static void HandleRiptideMuleItem(Session session, params string[] parameters)
         {
             //session.UpdateCharacters()
@@ -120,16 +123,41 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        private static Biota ResolveBiota(string param)
+        [CommandHandler("rts", AccessLevel.Admin, CommandHandlerFlag.None, 0, "Steal the first item from target player.")]
+        public static void HandleRiptideStealItem(Session session, params string[] parameters)
         {
-            uint id = uint.Parse(param);
-            Biota biota = DatabaseManager.Shard.GetBiota(id);
-            if (biota == null)
+            //session.UpdateCharacters()
+            try
             {
-                throw new Exception($"Biota not found: {param}");
-            } else
+                Character recipient = session.Player.Character;
+                var targetId = session.Player.CurrentAppraisalTarget;
+                if (!targetId.HasValue)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "Appraise another character first!", ChatMessageType.Help);
+                    return;
+                }
+                StringBuilder sb = new StringBuilder();
+                //Player sender = PlayerManager.GetOnlinePlayer(targetId.Value);
+                //List<WorldObject> items = sender.Inventory.Values.ToList();
+                //foreach (WorldObject i in items)
+                //{
+                //    sb.Append($"Item[{i.PlacementPosition ?? null}] -> '{i.Name ?? null}'");
+                //}
+                //CommandHandlerHelper.WriteOutputInfo(session, $"{sb}");
+                Character sender = RiptideManager.Database.GetCharacter(targetId.Value);
+                IPlayerInventory inventory = RiptideManager.Inventory.GetInventory(sender);
+                string view = inventory.Print();
+                CommandHandlerHelper.WriteOutputInfo(session, view);
+                //List<WorldObject> items = inventory.Inventory.Values.ToList();
+                //foreach (WorldObject i in items)
+                //{
+                //    sb.Append($"Item[{i.PlacementPosition ?? null}] -> '{i.Name ?? null}'");
+                //}
+                //CommandHandlerHelper.WriteOutputInfo(session, $"{sb}");
+            }
+            catch (Exception e)
             {
-                return biota;
+                CommandHandlerHelper.WriteOutputInfo(session, e.Message, ChatMessageType.Help);
             }
         }
 
@@ -146,6 +174,22 @@ namespace ACE.Server.Command.Handlers
                 return worldObject;
             }
         }
+
+
+        private static Biota ResolveBiota(string param)
+        {
+            uint id = uint.Parse(param);
+            Biota biota = DatabaseManager.Shard.GetBiota(id);
+            if (biota == null)
+            {
+                throw new Exception($"Biota not found: {param}");
+            }
+            else
+            {
+                return biota;
+            }
+        }
+
 
         private static Character ResolveCharacter(string param)
         {

@@ -25,7 +25,7 @@ namespace ACE.Server.WorldObjects
 
         public bool TradeTransferInProgress;
 
-        public void HandleActionOpenTradeNegotiations(uint tradePartnerGuid, bool initiator = false)
+        public void HandleActionOpenTradeNegotiations(uint tradePartnerGuid, bool initiator = false)    
         {
             var tradePartner = PlayerManager.GetOnlinePlayer(tradePartnerGuid);
             if (tradePartner == null) return;
