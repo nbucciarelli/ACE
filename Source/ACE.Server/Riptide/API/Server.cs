@@ -1,15 +1,10 @@
 using System;
-using System.IO;
-//using Microsoft.AspNetCore.Builder;
-//using Microsoft.AspNetCore.Hosting;
 using Nancy.Hosting.Self;
-using Nancy.Owin;
-
 
 //https://www.hanselman.com/blog/ExploringAMinimalWebAPIWithNETCoreAndNancyFX.aspx
 namespace ACE.Server.Riptide.API
 {
-    // MODULES MUST BE PUBLIC
+    // MODULES MUST BE PUBLIC. Otherwise you'll get 404 on every route. :)
     public class SampleModule : Nancy.NancyModule
     {
         public SampleModule()
