@@ -19,7 +19,6 @@ using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-
 using log4net;
 
 using Position = ACE.Entity.Position;

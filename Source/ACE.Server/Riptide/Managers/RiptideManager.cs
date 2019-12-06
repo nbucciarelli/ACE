@@ -18,5 +18,7 @@ namespace ACE.Server.Riptide.Managers
         public static IDatabaseManager Database = new RiptideDatabaseManager();
         public static IInventoryManager Inventory = new RiptideInventoryManager();
         public static ISessionManager Sessions = new RiptideSessionManager();
+        public static IPlayerManager Players = new RiptidePlayerManager();
+        public static IGameActionManager GameActions = new GameActionManager();
     }
 }

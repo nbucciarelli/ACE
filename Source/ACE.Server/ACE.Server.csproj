@@ -53,6 +53,7 @@
   <ItemGroup>
     <Folder Include="Riptide\" />
     <Folder Include="Riptide\Managers\" />
+    <Folder Include="Riptide\Web\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Riptide\RiptideDatabaseManager.cs" />
