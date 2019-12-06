@@ -15,7 +15,7 @@ namespace ACE.Server.Riptide.Managers
 {
     public interface IGameActionManager
     {
-        void Handle(ClientMessage message, Session session);
+        void Handle(GameActionType opCode, ClientMessage message, Session session);
     }
 
     internal class GameActionManager : IGameActionManager
@@ -26,13 +26,28 @@ namespace ACE.Server.Riptide.Managers
         {
         }
 
-        public void Handle(ClientMessage clientMessage, Session session)
+        private bool RequiresHandling(GameActionType opCode)
         {
-            //log.Info($"GameMessageType: {name}, Session: ..., Message: ...");
-            
+            switch (opCode)
+            {
+                case GameActionType.Talk:
+                case GameActionType.TalkDirect:
+                case GameActionType.Tell:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public void Handle(GameActionType opCode, ClientMessage originalClientMessage, Session session)
+        {
+            if (! RequiresHandling(opCode))
+                return; // optimization (early stopping.)
+
+            var clientMessage = originalClientMessage.Clone();
             uint sequence = clientMessage.Payload.ReadUInt32();
             uint opcode = clientMessage.Payload.ReadUInt32();
-            var opCode = (GameActionType)opcode;
+            //var opCode = (GameActionType)opcode;
 
             switch (opCode)
             {

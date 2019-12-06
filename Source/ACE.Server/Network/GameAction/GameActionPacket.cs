@@ -15,7 +15,7 @@ namespace ACE.Server.Network.GameAction
             uint opcode   = message.Payload.ReadUInt32();
 
             InboundMessageManager.HandleGameAction((GameActionType)opcode, message, session);
-            RiptideManager.GameActions.Handle(message.Clone(), session);
+            RiptideManager.GameActions.Handle((GameActionType)opcode, message.Clone(), session);
         }
     }
 }
