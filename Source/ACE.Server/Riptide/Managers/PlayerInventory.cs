@@ -45,7 +45,7 @@ namespace ACE.Server.Riptide.Managers
 
             foreach (WorldObject s in Sort(GetBackpackSlots()))
             {
-                sb.Append($"Slot[{s.PlacementPosition}]: {s.Name}\n");
+                sb.Append($"Slot[{s.PlacementPosition}]: {s.Name} ({s.Guid.Full})\n");
             }
 
             sb.Append($"Container[0]: Main Inventory\n");
@@ -53,25 +53,25 @@ namespace ACE.Server.Riptide.Managers
             {
                 if ((i.MaxStackSize ?? -1) > -1)
                 {
-                    sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} (x{i.StackSize ?? -1})\n");
+                    sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} (x{i.StackSize ?? -1}) ({i.Guid.Full})\n");
                 } else
                 {
-                    sb.Append($"- Item[{i.PlacementPosition}]: {i.Name}\n");
+                    sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} ({i.Guid.Full})\n");
                 }
             }
             var containers = Sort(GetContainers()).ToList();
             foreach (WorldObject c in containers)
             {
-                sb.Append($"Container[{c.PlacementPosition}]: {c.Name}\n");
+                sb.Append($"Container[{c.PlacementPosition}]: {c.Name} ({c.Guid.Full})\n");
                 foreach (WorldObject i in Sort(GetItems(c)))
                 {
                     if ((i.MaxStackSize ?? -1) > -1)
                     {
-                        sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} (x{i.StackSize ?? -1})\n");
+                        sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} (x{i.StackSize ?? -1}) ({c.Guid.Full})\n");
                     }
                     else
                     {
-                        sb.Append($"- Item[{i.PlacementPosition}]: {i.Name}\n");
+                        sb.Append($"- Item[{i.PlacementPosition}]: {i.Name} ({c.Guid.Full})\n");
                     }
                 }
             }

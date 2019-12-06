@@ -10,7 +10,6 @@ using ACE.Server.Network.GameMessages;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Riptide.Managers;
 using ACE.Server.WorldObjects;
-using ACE.Server.WorldObjects.Managers;
 using log4net;
 
 namespace ACE.Server.Riptide

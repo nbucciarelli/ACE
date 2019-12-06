@@ -8,6 +8,7 @@ using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Managers;
+using ACE.Server.Riptide.Managers.Networking;
 using ACE.Server.WorldObjects;
 
 
@@ -20,5 +21,6 @@ namespace ACE.Server.Riptide.Managers
         public static ISessionManager Sessions = new RiptideSessionManager();
         public static IPlayerManager Players = new RiptidePlayerManager();
         public static IGameActionManager GameActions = new GameActionManager();
+        public static IS2CManager S2C = new S2CManager();
     }
 }

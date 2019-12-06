@@ -119,6 +119,10 @@ namespace ACE.Server.Riptide.Managers
             if (!success)
             {
                 log.Error($"Failed to trade items!");
+            } else
+            {
+                RiptideManager.S2C.RefreshPlayerInventory(sender);
+                RiptideManager.S2C.RefreshPlayerInventory(recipient);
             }
         }
 
@@ -143,10 +147,11 @@ namespace ACE.Server.Riptide.Managers
         {
             bool result = true;
             if (result)
-            {
-                result &= RemoveItemFromInventory(sender, item);
-                log.Info($"RemoveItemFromInventory() -> {result}");
-            }
+            //{
+            //    result &= RemoveItemFromInventory(sender, item);
+            //    log.Info($"RemoveItemFromInventory() -> {result}");
+            //    //item.UpdateLinks();
+            //}
             if (result)
             {
                 result &= AddItemToInventory(recipient, item);
@@ -186,20 +191,22 @@ namespace ACE.Server.Riptide.Managers
                 if (session != null)
                 {
                     // the current owner is logged into the game.
+                    log.Info($"// the current owner is logged into the game.");
                     log.Info($"session.Player.TryConsumeFromInventoryWithNetworking()");
                     return session.Player.TryConsumeFromInventoryWithNetworking(item); // fails 
                 } else
                 {
-                    // the current owner is not logged in right now.
+                    log.Info($"// the current owner is NOT logged in right now.");
                     Container container = GetContainer(item);
-                    if (container == null)
-                    {
-                        log.Error($"Item {item.Name} has no container!");
-                        return false;
-                    } else
+                    if (container != null)
                     {
                         log.Info($"container.TryRemoveFromInventory()");
                         return container.TryRemoveFromInventory(item.Guid); // also fails   
+                    } else
+                    {
+                        log.Error($"Operation will be terminated.");
+                        log.Error($"Item {item.Name} has no container!");
+                        return false;
                     }
                 }
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ACE.Server.Managers;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Riptide.Managers
@@ -7,6 +8,7 @@ namespace ACE.Server.Riptide.Managers
     public interface IPlayerManager
     {
         IEnumerable<Player> GetPlayersInRange(WorldObject o, float range);
+        List<Player> GetAllOnline();
     }
 
     internal class RiptidePlayerManager: IPlayerManager
@@ -37,6 +39,12 @@ namespace ACE.Server.Riptide.Managers
                     result.Add(player);
             }
             return result;
+        }
+
+        public List<Player> GetAllOnline()
+        {
+            List<Player> players = PlayerManager.GetAllOnline();
+            return players;
         }
     }
 }
