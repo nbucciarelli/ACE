@@ -25,6 +25,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="RestSharp" Version="106.6.10" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="4.5.1" />
+    <PackageReference Include="Nancy" Version="2.0.0" />
+    <PackageReference Include="Nancy.Hosting.Self" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,7 +55,8 @@
   <ItemGroup>
     <Folder Include="Riptide\" />
     <Folder Include="Riptide\Managers\" />
-    <Folder Include="Riptide\Web\" />
+    <Folder Include="Riptide\API\" />
+    <Folder Include="Riptide\API\Models\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Riptide\RiptideDatabaseManager.cs" />

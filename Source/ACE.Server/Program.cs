@@ -12,6 +12,8 @@ using ACE.Server.Command;
 using ACE.Server.Managers;
 using ACE.Server.Network.Managers;
 using ACE.Server.Riptide;
+using ACE.Server.Riptide.API;
+
 
 namespace ACE.Server
 {
@@ -154,6 +156,9 @@ namespace ACE.Server
             log.Info("Initializing Riptide API Portal...");
             GlobalEventManager.AuthWebPortal();
 
+            log.Info("Initializing Riptide API...");
+            RiptideAPI.Initialize();
+
             if (!PropertyManager.GetBool("world_closed", false).Item)
             {
                 WorldManager.Open(null);
@@ -172,6 +177,7 @@ namespace ACE.Server
 
             PropertyManager.StopUpdating();
             DatabaseManager.Stop();
+            RiptideAPI.Destroy();
 
             // Do system specific cleanup here
             try
