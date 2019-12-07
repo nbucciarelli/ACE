@@ -51,6 +51,8 @@ namespace ACE.Server.WorldObjects
 
             UpdateCoinValue(false);
 
+            log.Info($"SendInventoryAndWieldedItems({Name})");
+            SendInventoryAndWieldedItems();
             next();
         }
     }

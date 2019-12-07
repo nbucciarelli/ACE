@@ -31,7 +31,7 @@ namespace ACE.Server.Riptide.Managers.Networking
                 // simulates logging into the game.
                 Next next = (() =>
                 {
-                    player.SendInventoryAndWieldedItems();
+                    //player.SendInventoryAndWieldedItems();
                 });
                 player.RefreshInventoryServerSide(next);
             }

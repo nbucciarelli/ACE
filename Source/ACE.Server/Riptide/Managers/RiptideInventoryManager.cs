@@ -40,14 +40,6 @@ namespace ACE.Server.Riptide.Managers
             return new PlayerInventory(biota);
         }
 
-        //public Dictionary<ObjectGuid, WorldObject> GetInventory(uint character_id)
-        //{
-        //    Player onlinePlayer = PlayerManager.GetOnlinePlayer(character_id);
-        //    if (onlinePlayer != null)
-        //        return onlinePlayer.Inventory;
-        //    throw new NotImplementedException($"Offline player inventory not yet implemented!");
-        //}
-
         public Character GetOwner(WorldObject item)
         {
             if (item == null)
