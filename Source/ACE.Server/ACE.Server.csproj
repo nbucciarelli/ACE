@@ -58,6 +58,7 @@
     <Folder Include="Riptide\API\" />
     <Folder Include="Riptide\API\Models\" />
     <Folder Include="Riptide\Managers\Networking\" />
+    <Folder Include="Riptide\Extensions\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Riptide\RiptideDatabaseManager.cs" />

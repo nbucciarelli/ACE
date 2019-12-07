@@ -18,6 +18,8 @@ using log4net;
 
 namespace ACE.Server.Riptide.Managers
 {
+    //public delegate void TradeCompletedCallback(Character sender, Character recipient);
+    public delegate void TradeCompletedCallback();
     public interface IInventoryManager
     {
         Character GetOwner(WorldObject item);
@@ -114,6 +116,13 @@ namespace ACE.Server.Riptide.Managers
             log.Info($"SplitStack -> created = {created != null}");
             WorldObject package = (created != null) ? created : item;
             log.Info($"SplitStack -> package = {package.Guid.Full}");
+
+            //Func<dynamic> callback = (() =>
+            //{
+            //    RiptideManager.S2C.RefreshPlayerInventory(sender);
+            //    RiptideManager.S2C.RefreshPlayerInventory(recipient);
+            //});
+            
             bool success = _TradeItem(sender, recipient, package);
             log.Info($"_TradeItem -> success = {success}");
             if (!success)
@@ -121,8 +130,8 @@ namespace ACE.Server.Riptide.Managers
                 log.Error($"Failed to trade items!");
             } else
             {
-                RiptideManager.S2C.RefreshPlayerInventory(sender);
-                RiptideManager.S2C.RefreshPlayerInventory(recipient);
+                //RiptideManager.S2C.RefreshPlayerInventory(sender);
+                //RiptideManager.S2C.RefreshPlayerInventory(recipient);
             }
         }
 
@@ -145,8 +154,9 @@ namespace ACE.Server.Riptide.Managers
 
         private bool _TradeItem(Character sender, Character recipient, WorldObject item)
         {
+
             bool result = true;
-            if (result)
+            //if (result)
             //{
             //    result &= RemoveItemFromInventory(sender, item);
             //    log.Info($"RemoveItemFromInventory() -> {result}");
@@ -154,13 +164,54 @@ namespace ACE.Server.Riptide.Managers
             //}
             if (result)
             {
-                result &= AddItemToInventory(recipient, item);
+                result &= AddItemToInventory2(sender, recipient, item);
                 log.Info($"AddItemToInventory() -> {result}");
             }
             return result;
         }
 
         public bool IsStackable(WorldObject item) { return item.MaxStackSize.HasValue; }
+
+
+        private bool TryAddToInventory(Character sender, Character recipient, WorldObject item)
+        {
+            log.Info($"RiptideInventoryManager :: TryAddToInventory()");
+            AfterSaveCallback afterSave = () =>
+            {
+                log.Info($"began executing AfterSaveCallback()... - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
+                RiptideManager.S2C.RefreshPlayerInventory(sender);
+                RiptideManager.S2C.RefreshPlayerInventory(recipient);
+                log.Info($"...finished executing AfterSaveCallback() - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
+            };
+
+            Container container = GetContainer(recipient);
+            item.OwnerId = recipient.Id;
+            item.ContainerId = container.Guid.Full;
+            item.PlacementPosition = 0;
+            item.SaveBiotaToDatabase(afterSave);
+            return true;
+        }
+
+        private bool AddItemToInventory2(Character sender, Character recipient, WorldObject item)
+        {
+            var result = TryAddToInventory(sender, recipient, item);
+            return result;
+            //Session session = RiptideManager.Sessions.GetSession(character);
+            //if (session != null)
+            //{
+            //    /** Do it WITH networking */
+            //    if (session.Player.GetFreeInventorySlots(true) == 0)
+            //        throw new Exception($"Character {character.Id} has no free inventory space!");
+            //    log.Info($"session.Player.TryAddToInventory()");
+            //    return session.Player.TryAddToInventory(item, placementPosition: 0);
+            //}
+            //else
+            //{
+            //    /** Do it WITHOUT networking */
+            //    Container inventory = GetContainer(character);
+            //    return inventory.TryAddToInventory(item, placementPosition: 0, burdenCheck: false);
+            //}
+        }
 
         private bool AddItemToInventory(Character character, WorldObject item)
         {
@@ -180,50 +231,38 @@ namespace ACE.Server.Riptide.Managers
             }
         }
 
-        private bool RemoveItemFromInventory(Character character, WorldObject item)
-        {
-            if (character == null)
-            {
-                return false;
-            } else
-            {
-                Session session = RiptideManager.Sessions.GetSession(character);
-                if (session != null)
-                {
-                    // the current owner is logged into the game.
-                    log.Info($"// the current owner is logged into the game.");
-                    log.Info($"session.Player.TryConsumeFromInventoryWithNetworking()");
-                    return session.Player.TryConsumeFromInventoryWithNetworking(item); // fails 
-                } else
-                {
-                    log.Info($"// the current owner is NOT logged in right now.");
-                    Container container = GetContainer(item);
-                    if (container != null)
-                    {
-                        log.Info($"container.TryRemoveFromInventory()");
-                        return container.TryRemoveFromInventory(item.Guid); // also fails   
-                    } else
-                    {
-                        log.Error($"Operation will be terminated.");
-                        log.Error($"Item {item.Name} has no container!");
-                        return false;
-                    }
-                }
-            }
-            
-        }
-
-        //private static Container GetContainerOfObject(WorldObject obj)
+        //private bool RemoveItemFromInventory(Character character, WorldObject item)
         //{
-        //    try
+        //    if (character == null)
         //    {
-        //        var src = new Container(DatabaseManager.Shard.GetBiota(obj.GetProperty(PropertyInstanceId.Container).Value));
-        //        return src;
-        //    }
-        //    catch (Exception e)
+        //        return false;
+        //    } else
         //    {
-        //        return null;
+        //        Session session = RiptideManager.Sessions.GetSession(character);
+        //        if (session != null)
+        //        {
+        //            // the current owner is logged into the game.
+        //            log.Info($"// the current owner is logged into the game.");
+        //            log.Info($"session.Player.TryConsumeFromInventoryWithNetworking()");
+        //            return session.Player.TryConsumeFromInventoryWithNetworking(item); // fails 
+        //        } else
+        //        {
+        //            log.Info($"// the current owner is NOT logged in right now.");
+        //            Container container = GetContainer(item);
+        //            if (container != null)
+        //            {
+        //                log.Info($"container.TryRemoveFromInventory()");
+        //                return container.TryRemoveFromInventory(item.Guid); // also fails   
+        //            } else
+        //            {
+        //                log.Error($"Operation will be terminated.");
+        //                log.Error($"Item {item.Name} has no container!");
+        //                return false;
+        //            }
+        //        }
         //    }
+            
         //}
+
     }
 }
