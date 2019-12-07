@@ -164,11 +164,10 @@ namespace ACE.Server.Riptide.Managers
 
         public bool IsStackable(WorldObject item) { return item.MaxStackSize.HasValue; }
 
-
         private bool TryAddToInventory(Character sender, Character recipient, WorldObject item)
         {
             log.Info($"RiptideInventoryManager :: TryAddToInventory()");
-            AfterSaveCallback afterSave = () =>
+            Next afterSave = () =>
             {
                 //log.Info($"began executing AfterSaveCallback()... - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
                 //RiptideManager.S2C.RefreshPlayerInventory(sender);

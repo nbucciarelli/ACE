@@ -11,16 +11,14 @@ using ACE.Server.Riptide.Managers;
 
 namespace ACE.Server.WorldObjects
 {
-    public delegate void AfterSaveCallback();
-
     public partial class Container : WorldObject
     {
-        public bool TryAddToInventory(WorldObject worldObject, AfterSaveCallback callback)
+        public bool TryAddToInventory(WorldObject worldObject, Next callback)
         {
             return TryAddToInventory(worldObject, callback, out _, placementPosition: 0, limitToMainPackOnly: false, burdenCheck: false);
         }
 
-        private bool TryAddToInventory(WorldObject worldObject, AfterSaveCallback callback, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
+        private bool TryAddToInventory(WorldObject worldObject, Next callback, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
         {
             // refer to Container.cs
 
@@ -106,7 +104,7 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        private void OnAddItem(AfterSaveCallback callback)
+        private void OnAddItem(Next callback)
         {
             //Console.WriteLine("Storage.OnAddItem()");
 
@@ -122,7 +120,7 @@ namespace ACE.Server.WorldObjects
     partial class WorldObject
     {
 
-        public void SaveBiotaToDatabase(AfterSaveCallback afterSave, bool enqueueSave = true)
+        public void SaveBiotaToDatabase(Next afterSave, bool enqueueSave = true)
         {
             // Make sure all of our positions in the biota are up to date with our current cached values.
             foreach (var kvp in positionCache)
