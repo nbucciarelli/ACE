@@ -170,10 +170,20 @@ namespace ACE.Server.Riptide.Managers
             log.Info($"RiptideInventoryManager :: TryAddToInventory()");
             AfterSaveCallback afterSave = () =>
             {
+                //log.Info($"began executing AfterSaveCallback()... - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
+                //RiptideManager.S2C.RefreshPlayerInventory(sender);
+                //RiptideManager.S2C.RefreshPlayerInventory(recipient);
+                //log.Info($"GameMessageDeleteItem({item.Name}) -> {sender.Name}");
+                //RiptideManager.S2C.RemoveItem(sender, item);
+                //RiptideManager.S2C.AddItem(sender, item);
                 log.Info($"began executing AfterSaveCallback()... - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
-                RiptideManager.S2C.RefreshPlayerInventory(sender);
-                RiptideManager.S2C.RefreshPlayerInventory(recipient);
-                log.Info($"...finished executing AfterSaveCallback() - origin: _TradeItem({sender.Name}, {recipient.Name}, {item.Name})");
+                Next remove = () => RiptideManager.S2C.RemoveItem(sender, item);
+                Next add = () => RiptideManager.S2C.AddItem(sender, item);
+                RiptideManager.S2C.RefreshPlayerInventory(sender, remove);
+                RiptideManager.S2C.RefreshPlayerInventory(recipient, add);
+                //log.Info($"GameMessageDeleteItem({item.Name}) -> {sender.Name}");
+                //RiptideManager.S2C.RemoveItem(sender, item);
+                //RiptideManager.S2C.AddItem(sender, item);
             };
 
             Container container = GetContainer(recipient);
