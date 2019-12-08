@@ -16,7 +16,7 @@ namespace ACE.Server.WorldObjects
         public bool TryAddToInventory(WorldObject worldObject, Next callback)
         {
             return TryAddToInventory(worldObject, callback, out _, placementPosition: 0, limitToMainPackOnly: false, burdenCheck: false);
-        }
+        } 
 
         private bool TryAddToInventory(WorldObject worldObject, Next callback, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
         {
