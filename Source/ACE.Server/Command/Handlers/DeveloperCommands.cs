@@ -22,7 +22,6 @@ using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.Physics.Common;
 using ACE.Server.Physics.Entity;
 using ACE.Server.Physics.Managers;
 using ACE.Server.WorldObjects;
@@ -2687,6 +2686,14 @@ namespace ACE.Server.Command.Handlers
         {
             var spell = new Spell(SpellId.SlownessSelf8);
             session.Player.CreateEnchantment(session.Player, session.Player, spell);
+        }
+
+        [CommandHandler("rip", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
+        public static void HandleRip(Session session, params string[] parameters)
+        {
+            // insta-death, without the confirmation dialog from /die
+            // useful during developer testing
+            session.Player.TakeDamage(session.Player, DamageType.Bludgeon, session.Player.Health.Current);
         }
     }
 }

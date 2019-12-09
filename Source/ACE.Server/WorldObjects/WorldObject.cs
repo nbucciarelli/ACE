@@ -417,28 +417,6 @@ namespace ACE.Server.WorldObjects
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
@@ -446,7 +424,6 @@ namespace ACE.Server.WorldObjects
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
-
 
         public MoveToState LastMoveToState { get; set; }
 
@@ -458,7 +435,6 @@ namespace ACE.Server.WorldObjects
         /// - For MoveToState packets, this is set to FALSE
         /// </summary>
         public bool RequestedLocationBroadcast { get; set; }
-
 
         ////// Logical Game Data
         public ContainerType ContainerType
@@ -733,7 +709,7 @@ namespace ACE.Server.WorldObjects
                 LandblockManager.AddObject(this);
 
                 if (SuppressGenerateEffect != true)
-                    ApplyVisualEffects(ACE.Entity.Enum.PlayScript.Create);
+                    ApplyVisualEffects(PlayScript.Create);
 
                 if (Generator != null)
                     OnGeneration(Generator);
@@ -883,7 +859,7 @@ namespace ACE.Server.WorldObjects
 
         public void FadeOutAndDestroy(bool raiseNotifyOfDestructionEvent = true)
         {
-            EnqueueBroadcast(new GameMessageScript(Guid, ACE.Entity.Enum.PlayScript.Destroy));
+            EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.Destroy));
 
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(1.0f);
