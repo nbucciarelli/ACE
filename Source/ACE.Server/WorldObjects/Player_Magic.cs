@@ -459,7 +459,7 @@ namespace ACE.Server.WorldObjects
         }
 
         // 20 from MoveToManager threshold?
-        public static readonly float MaxAngle = 5;
+        public static float MaxAngle = 5;
 
         public void DoCastSpell(MagicState _state)
         {
@@ -511,6 +511,8 @@ namespace ACE.Server.WorldObjects
                         angle = Math.Abs(GetAngle_Physics2(target));
                 }
 
+
+                MaxAngle = (float)PropertyManager.GetDouble("casting_angle").Item;
                 if (angle > MaxAngle)
                 {
                     if (RecordCast.Enabled)
