@@ -90,6 +90,7 @@ namespace ACE.Server.Physics
         /// </summary>
         public bool IsAnimating;
 
+        // this is used by the 1991 branch to determine when physics updates need to be run
         public bool IsMovingOrAnimating => !PartArray.Sequence.is_first_cyclic() || CachedVelocity != Vector3.Zero || Velocity != Vector3.Zero ||
             MovementManager.MotionInterpreter.InterpretedState.HasCommands();
 
@@ -390,7 +391,9 @@ namespace ACE.Server.Physics
 
             var state = transition.ObjectInfo.State;
 
-            var exemption = !(WeenieObj == null || !WeenieObj.IsPlayer() || !state.HasFlag(ObjectInfoState.IsPlayer) ||
+            // TODO: reverse this check to make it more readable
+            // TODO: investigate not initting WeenieObj for DatObjects
+            var exemption = !( /*WeenieObj == null*/ DatObject || !WeenieObj.IsPlayer() || !state.HasFlag(ObjectInfoState.IsPlayer) ||
                 state.HasFlag(ObjectInfoState.IsImpenetrable) || WeenieObj.IsImpenetrable() ||
                 state.HasFlag(ObjectInfoState.IsPK) && WeenieObj.IsPK() || state.HasFlag(ObjectInfoState.IsPKLite) && WeenieObj.IsPKLite());
 
@@ -1350,6 +1353,8 @@ namespace ACE.Server.Physics
                 PartArray.SetScaleInternal(new Vector3(scale, scale, scale));
         }
 
+        public static float ScatterThreshold_Z = 10.0f;
+
         public SetPositionError SetScatterPositionInternal(SetPosition setPos, Transition transition)
         {
             var result = SetPositionError.GeneralFailure;
@@ -1391,7 +1396,13 @@ namespace ACE.Server.Physics
                     {
                         // set to ground pos
                         var landblock = LScape.get_landblock(newPos.ObjCellID);
-                        newPos.Frame.Origin.Z = landblock.GetZ(newPos.Frame.Origin) + 0.05f;
+                        var groundZ = landblock.GetZ(newPos.Frame.Origin) + 0.05f;
+
+                        if (Math.Abs(newPos.Frame.Origin.Z - groundZ) > ScatterThreshold_Z)
+                            log.Debug($"{Name} ({ID:X8}).SetScatterPositionInternal() - tried to spawn outdoor object @ {newPos} ground Z {groundZ}, investigate ScatterThreshold_Z");
+                        else
+                            newPos.Frame.Origin.Z = groundZ;
+
                     }
                     //else
                         //indoors = true;
