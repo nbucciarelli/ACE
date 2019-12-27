@@ -518,6 +518,11 @@ namespace ACE.Server.Physics.Common
             }
         }
 
+        public override string ToString()
+        {
+            return ID.ToString("X8");
+	}
+
         public bool IsVisible(ObjCell cell)
         {
             if (ID == cell.ID) return true;
