@@ -7,7 +7,7 @@ namespace ACE.Server.Network.GameAction.Actions
         [GameAction(GameActionType.Suicide)]
         public static void Handle(ClientMessage message, Session session)
         {
-            session.Player.HandleActionDie();
+            //session.Player.HandleActionDie();
         }
     }
 }
