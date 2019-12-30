@@ -78,7 +78,7 @@ namespace ACE.Server.WorldObjects
                 Fellowship.OnDeath(this);
 
             // if the player's lifestone is in a different landblock, also broadcast their demise to that landblock
-            if (Sanctuary != null && Location.Landblock != Sanctuary.Landblock)
+            if (PropertyManager.GetBool("lifestone_broadcast_death").Item && Sanctuary != null && Location.Landblock != Sanctuary.Landblock)
             {
                 // ActionBroadcastKill might not work if other players around lifestone aren't aware of this player yet...
                 // this existing broadcast method is also based on the current visible objects to the player,
@@ -88,7 +88,7 @@ namespace ACE.Server.WorldObjects
                 // instead, we get all of the players in the lifestone landblock + adjacent landblocks,
                 // and possibly limit that to some radius around the landblock?
                 var lifestoneBlock = LandblockManager.GetLandblock(new LandblockId(Sanctuary.Landblock << 16 | 0xFFFF), true);
-                lifestoneBlock.EnqueueBroadcast(excludePlayers, true, broadcastMsg);
+                lifestoneBlock.EnqueueBroadcast(excludePlayers, true, Sanctuary, LocalBroadcastRangeSq, broadcastMsg);
             }
 
             return deathMessage;
@@ -213,8 +213,6 @@ namespace ACE.Server.WorldObjects
 
                 ThreadSafeTeleportOnDeath(); // enter portal space
 
-                SetLifestoneProtection();
-
                 if (IsPKDeath(topDamager) || IsPKLiteDeath(topDamager))
                 {
                     SetMinimumTimeSincePK();
@@ -236,10 +234,12 @@ namespace ACE.Server.WorldObjects
             // teleport to sanctuary or best location
             var newPosition = Sanctuary ?? Instantiation ?? Location;
 
-            ThreadSafeTeleport(newPosition, new ActionEventDelegate(() =>
-            { 
+            WorldManager.ThreadSafeTeleport(this, newPosition, new ActionEventDelegate(() =>
+            {
                 // Stand back up
                 SetCombatMode(CombatMode.NonCombat);
+
+                SetLifestoneProtection();
 
                 var teleportChain = new ActionChain();
                 teleportChain.AddDelaySeconds(3.0f);
@@ -450,7 +450,10 @@ namespace ACE.Server.WorldObjects
             // if player dies in a PKLite battle,
             // they don't drop any items, and revert back to NPK status
 
-            if (IsPKLiteDeath(corpse.KillerId))
+            // if player dies on a No Drop landblock,
+            // they don't drop any items
+
+            if (corpse.IsOnNoDropLandblock || IsPKLiteDeath(corpse.KillerId))
                 return new List<WorldObject>();
 
             var numItemsDropped = GetNumItemsDropped(corpse);
@@ -884,7 +887,7 @@ namespace ACE.Server.WorldObjects
         public void HandleLifestoneProtection()
         {
             Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.LifestoneMagicProtectsYou));
-            EnqueueBroadcast(new GameMessageScript(Guid, ACE.Entity.Enum.PlayScript.ShieldUpBlue));
+            EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.ShieldUpBlue));
         }
 
         public static TimeSpan LifestoneProtectionTime = TimeSpan.FromMinutes(1);

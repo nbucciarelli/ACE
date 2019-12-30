@@ -104,10 +104,6 @@ namespace ACE.Server.WorldObjects
             InitializeHeartbeats();
 
             CreationTimestamp = (int)Time.GetUnixTime();
-
-            // TODO: fix weenie data
-            if (Lifespan != null)
-                RemainingLifespan = Lifespan;
         }
 
         /// <summary>
@@ -417,28 +413,6 @@ namespace ACE.Server.WorldObjects
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
@@ -446,7 +420,6 @@ namespace ACE.Server.WorldObjects
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
         // ******************************************************************* OLD CODE BELOW ********************************
-
 
         public MoveToState LastMoveToState { get; set; }
 
@@ -458,7 +431,6 @@ namespace ACE.Server.WorldObjects
         /// - For MoveToState packets, this is set to FALSE
         /// </summary>
         public bool RequestedLocationBroadcast { get; set; }
-
 
         ////// Logical Game Data
         public ContainerType ContainerType
@@ -726,18 +698,21 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnGeneration();
         }
 
-        public virtual void EnterWorld()
+        public virtual bool EnterWorld()
         {
-            if (Location != null)
-            {
-                LandblockManager.AddObject(this);
+            if (Location == null)
+                return false;
 
-                if (SuppressGenerateEffect != true)
-                    ApplyVisualEffects(ACE.Entity.Enum.PlayScript.Create);
+            if (!LandblockManager.AddObject(this))
+                return false;
 
-                if (Generator != null)
-                    OnGeneration(Generator);
-            }
+            if (SuppressGenerateEffect != true)
+                ApplyVisualEffects(PlayScript.Create);
+
+            if (Generator != null)
+                OnGeneration(Generator);
+
+            return true;
         }
 
         // todo: This should really be an extension method for Position, or a static method within Position or even AdjustPos
@@ -883,7 +858,7 @@ namespace ACE.Server.WorldObjects
 
         public void FadeOutAndDestroy(bool raiseNotifyOfDestructionEvent = true)
         {
-            EnqueueBroadcast(new GameMessageScript(Guid, ACE.Entity.Enum.PlayScript.Destroy));
+            EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.Destroy));
 
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(1.0f);
@@ -969,6 +944,7 @@ namespace ACE.Server.WorldObjects
         public bool IsLinkSpot => WeenieType == WeenieType.Generic && WeenieClassName.Equals("portaldestination");
 
         public static readonly float LocalBroadcastRange = 96.0f;
+        public static readonly float LocalBroadcastRangeSq = LocalBroadcastRange * LocalBroadcastRange;
 
         public SetPosition ScatterPos { get; set; }
 
@@ -1022,5 +998,7 @@ namespace ACE.Server.WorldObjects
         }
 
         public virtual bool IsAttunedOrContainsAttuned => (Attuned ?? 0) >= 1;
+
+        public bool IsTradeNote => ItemType == ItemType.PromissoryNote;
     }
 }

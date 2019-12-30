@@ -64,8 +64,8 @@ namespace ACE.Server.Physics
         public Vector3 Velocity;
         public Vector3 Acceleration;
         public Vector3 Omega;
-        public LinkedList<PhysicsObjHook> Hooks;
-        public LinkedList<AnimHook> AnimHooks;
+        public List<PhysicsObjHook> Hooks;
+        public List<AnimHook> AnimHooks;
         public float Scale;
         public float AttackRadius;
         public DetectionManager DetectionManager;
@@ -90,6 +90,7 @@ namespace ACE.Server.Physics
         /// </summary>
         public bool IsAnimating;
 
+        // this is used by the 1991 branch to determine when physics updates need to be run
         public bool IsMovingOrAnimating => !PartArray.Sequence.is_first_cyclic() || CachedVelocity != Vector3.Zero || Velocity != Vector3.Zero ||
             MovementManager.MotionInterpreter.InterpretedState.HasCommands();
 
@@ -131,8 +132,8 @@ namespace ACE.Server.Physics
             Scale = PhysicsGlobals.DefaultScale;
             SlidingNormal = Vector3.Zero;
             CachedVelocity = Vector3.Zero;
-            Hooks = new LinkedList<PhysicsObjHook>();
-            AnimHooks = new LinkedList<AnimHook>();
+            Hooks = new List<PhysicsObjHook>();
+            AnimHooks = new List<AnimHook>();
             Children = new ChildList();
             ShadowObjects = new Dictionary<uint, ShadowObj>();
             CollisionTable = new Dictionary<uint, CollisionRecord>();
@@ -276,7 +277,7 @@ namespace ACE.Server.Physics
             var upperBound = (float)delta;
             var randp = ThreadSafeRandom.Next(0.0f, upperBound);
             var hook = new FPHook(PhysicsHookType.Velocity | PhysicsHookType.MotionTable | PhysicsHookType.Setup, PhysicsTimer_CurrentTime, randp, 0.0f, 1.0f, pes);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public void CallPESInternal(uint pes, float curValue)
@@ -390,7 +391,9 @@ namespace ACE.Server.Physics
 
             var state = transition.ObjectInfo.State;
 
-            var exemption = !(WeenieObj == null || !WeenieObj.IsPlayer() || !state.HasFlag(ObjectInfoState.IsPlayer) ||
+            // TODO: reverse this check to make it more readable
+            // TODO: investigate not initting WeenieObj for DatObjects
+            var exemption = !( /*WeenieObj == null*/ DatObject || !WeenieObj.IsPlayer() || !state.HasFlag(ObjectInfoState.IsPlayer) ||
                 state.HasFlag(ObjectInfoState.IsImpenetrable) || WeenieObj.IsImpenetrable() ||
                 state.HasFlag(ObjectInfoState.IsPK) && WeenieObj.IsPK() || state.HasFlag(ObjectInfoState.IsPKLite) && WeenieObj.IsPKLite());
 
@@ -1047,7 +1050,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.MotionTable | PhysicsHookType.Setup, PhysicsTimer_CurrentTime, delta, start, end, 0);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public bool SetMotionTableID(uint mtableID)
@@ -1081,7 +1084,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.Velocity | PhysicsHookType.MotionTable, PhysicsTimer_CurrentTime, delta, start, end, part);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public bool SetPartLighting(int partIdx, float luminosity, float diffuse)
@@ -1101,7 +1104,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.Velocity | PhysicsHookType.Setup, PhysicsTimer_CurrentTime, delta, start, end, part);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public void SetPartTextureVelocity(int partIdx, float du, float dv)
@@ -1119,7 +1122,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.MotionTable, PhysicsTimer_CurrentTime, delta, startTrans, endTrans, partIdx);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public bool SetPlacementFrame(int frameID, bool sendEvent)
@@ -1340,7 +1343,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook((PhysicsHookType)0, PhysicsTimer_CurrentTime, delta, Scale, scale, 0);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public void SetScaleStatic(float scale)
@@ -1349,6 +1352,8 @@ namespace ACE.Server.Physics
             if (PartArray != null)
                 PartArray.SetScaleInternal(new Vector3(scale, scale, scale));
         }
+
+        public static float ScatterThreshold_Z = 10.0f;
 
         public SetPositionError SetScatterPositionInternal(SetPosition setPos, Transition transition)
         {
@@ -1391,7 +1396,13 @@ namespace ACE.Server.Physics
                     {
                         // set to ground pos
                         var landblock = LScape.get_landblock(newPos.ObjCellID);
-                        newPos.Frame.Origin.Z = landblock.GetZ(newPos.Frame.Origin) + 0.05f;
+                        var groundZ = landblock.GetZ(newPos.Frame.Origin) + 0.05f;
+
+                        if (Math.Abs(newPos.Frame.Origin.Z - groundZ) > ScatterThreshold_Z)
+                            log.Debug($"{Name} ({ID:X8}).SetScatterPositionInternal() - tried to spawn outdoor object @ {newPos} ground Z {groundZ}, investigate ScatterThreshold_Z");
+                        else
+                            newPos.Frame.Origin.Z = groundZ;
+
                     }
                     //else
                         //indoors = true;
@@ -1452,7 +1463,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.Setup, PhysicsTimer_CurrentTime, delta, 0.0f, translucency, 0);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public void SetTranslucency2(float startTrans, float endTrans, double delta)
@@ -1465,7 +1476,7 @@ namespace ACE.Server.Physics
                 return;
             }
             var hook = new FPHook(PhysicsHookType.Setup, PhysicsTimer_CurrentTime, delta, startTrans, endTrans, 0);
-            Hooks.AddLast(hook);
+            Hooks.Add(hook);
         }
 
         public void SetTranslucencyHierarchial(float translucency)
@@ -1823,7 +1834,7 @@ namespace ACE.Server.Physics
 
         public void add_anim_hook(AnimHook hook)
         {
-            AnimHooks.AddLast(hook);
+            AnimHooks.Add(hook);
         }
 
         public bool add_child(PhysicsObj obj, int where)
@@ -3028,14 +3039,19 @@ namespace ACE.Server.Physics
 
         public void process_hooks()
         {
-            foreach (var hook in Hooks.ToList())
+            for (var i = 0; i < Hooks.Count; i++)
+            {
+                var hook = Hooks[i];
                 hook.Execute(this);
+            }
 
             Hooks.Clear();
 
-            // collection was modified, only in client movement setup? (/modifybool fastcast false)
-            foreach (var animHook in AnimHooks.ToList())
+            for (var i = 0; i < AnimHooks.Count; i++)
+            {
+                var animHook = AnimHooks[i];
                 animHook.Execute(this);
+            }
 
             AnimHooks.Clear();
         }

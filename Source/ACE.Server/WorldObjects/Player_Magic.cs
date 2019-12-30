@@ -75,7 +75,7 @@ namespace ACE.Server.WorldObjects
         /// <param name="builtInSpell">If TRUE, casting a built-in spell from a weapon</param>
         public void HandleActionCastTargetedSpell(uint targetGuid, uint spellId, bool builtInSpell = false)
         {
-            //Console.WriteLine($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {builtInSpell}");
+            //Console.WriteLine($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {builtInSpell})");
 
             if (CombatMode != CombatMode.Magic)
                 return;
@@ -144,43 +144,49 @@ namespace ACE.Server.WorldObjects
 
         public TargetCategory GetTargetCategory(uint targetGuid, uint spellId, out WorldObject target)
         {
-            target = CurrentLandblock?.GetObject(targetGuid);
-            var targetCategory = TargetCategory.Undef;
-
-            if (target != null)
-            {
-                if (targetGuid == Guid.Full)
-                    targetCategory = TargetCategory.Self;
-                else
-                    targetCategory = TargetCategory.WorldObject;
-            }
-            else
-            {
-                target = GetEquippedItem(targetGuid);
-                if (target != null)
-                    targetCategory = TargetCategory.Wielded;
-                else
-                {
-                    target = GetInventoryItem(targetGuid);
-                    if (target != null)
-                        targetCategory = TargetCategory.Inventory;
-                    else
-                    {
-                        target = CurrentLandblock?.GetWieldedObject(targetGuid);
-                        if (target != null)
-                            targetCategory = TargetCategory.Wielded;
-                    }
-                }
-            }
-
+            // fellowship spell
             var spell = new Spell(spellId);
             if ((spell.Flags & SpellFlags.FellowshipSpell) != 0)
             {
-                targetCategory = TargetCategory.Fellowship;
                 target = this;
+                return TargetCategory.Fellowship;
             }
 
-            return targetCategory;
+            // direct landblock object
+            target = CurrentLandblock?.GetObject(targetGuid);
+
+            if (target != null)
+                return targetGuid == Guid.Full ? TargetCategory.Self : TargetCategory.WorldObject;
+
+            // self-wielded
+            target = GetEquippedItem(targetGuid);
+            if (target != null)
+                return TargetCategory.Wielded;
+
+            // inventory item
+            target = GetInventoryItem(targetGuid);
+            if (target != null)
+                return TargetCategory.Inventory;
+
+            // other selectable wielded
+            target = CurrentLandblock?.GetWieldedObject(targetGuid, true);
+            if (target != null)
+                return TargetCategory.Wielded;
+
+            // known trade objects
+            var tradePartner = GetKnownTradeObj(new ObjectGuid(targetGuid));
+            if (tradePartner != null)
+            {
+                target = tradePartner.GetEquippedItem(targetGuid);
+                if (target != null)
+                    return TargetCategory.Wielded;
+
+                target = tradePartner.GetInventoryItem(targetGuid);
+                if (target != null)
+                    return TargetCategory.Inventory;
+            }
+
+            return TargetCategory.Undef;
         }
 
         /// <summary>
@@ -188,7 +194,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void HandleActionMagicCastUnTargetedSpell(uint spellId)
         {
-            //Console.WriteLine($"{Name}.HandleActionCastUnTargetedSpell({spellId}");
+            //Console.WriteLine($"{Name}.HandleActionCastUnTargetedSpell({spellId})");
 
             if (CombatMode != CombatMode.Magic)
                 return;
@@ -522,6 +528,15 @@ namespace ACE.Server.WorldObjects
                     FinishCast(WeenieError.None);
                     return;
                 }
+            }
+
+            //actionChain.AddAction(this, () => DoCastSpell_Inner(spell, isWeaponSpell, manaUsed, target, castingPreCheckStatus));
+            //actionChain.EnqueueChain();
+
+            if (IsDead)
+            {
+                FinishCast(WeenieError.None);
+                return;
             }
 
             DoCastSpell_Inner(spell, isWeaponSpell, manaUsed, target, castingPreCheckStatus);
@@ -1084,8 +1099,10 @@ namespace ACE.Server.WorldObjects
             if (burned.Count == 0) return;
 
             // decrement components
-            foreach (var component in burned)
+            for (var i = burned.Count - 1; i >= 0; i--)
             {
+                var component = burned[i];
+
                 if (!SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(component, out var spellComponent))
                 {
                     log.Error($"{Name}.TryBurnComponents(): Couldn't find SpellComponent {component}");
@@ -1098,12 +1115,18 @@ namespace ACE.Server.WorldObjects
                 var item = GetInventoryItemsOfWCID(wcid).FirstOrDefault();
                 if (item == null)
                 {
-                    log.Warn($"{Name}.TryBurnComponents({spellComponent.Name}): not found in inventory");
+                    if (SpellComponentsRequired)
+                        log.Warn($"{Name}.TryBurnComponents({spellComponent.Name}): not found in inventory");
+                    else
+                        burned.RemoveAt(i);
+
                     continue;
                 }
-
                 TryConsumeFromInventoryWithNetworking(item, 1);
             }
+
+            if (burned.Count == 0)
+                return;
 
             // send message to player
             var msg = Spell.GetConsumeString(burned);

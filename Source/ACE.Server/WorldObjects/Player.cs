@@ -39,13 +39,12 @@ namespace ACE.Server.WorldObjects
 
         public Session Session { get; }
 
-        public QuestManager QuestManager;
-
         public ContractManager ContractManager;
 
         public bool LastContact = true;
         public bool IsJumping = false;
-        public DateTime LastJumpTime = DateTime.MinValue;
+
+        public DateTime LastJumpTime;
 
         public ACE.Entity.Position LastGroundPos;
         public ACE.Entity.Position SnapPos;
@@ -114,6 +113,8 @@ namespace ACE.Server.WorldObjects
             // This should be handled automatically...
             //PositionFlags |= PositionFlags.OrientationHasNoX | PositionFlags.OrientationHasNoY | PositionFlags.IsGrounded | PositionFlags.HasPlacementID;
 
+            FirstEnterWorldDone = false;
+
             SetStance(MotionStance.NonCombat, false);
 
             // radius for object updates
@@ -143,7 +144,7 @@ namespace ACE.Server.WorldObjects
 
             CombatTable = DatManager.PortalDat.ReadFromDat<CombatManeuverTable>(CombatTableDID.Value);
 
-            QuestManager = new QuestManager(this);
+            _questManager = new QuestManager(this);
 
             ContractManager = new ContractManager(this);
 

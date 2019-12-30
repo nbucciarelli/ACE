@@ -308,12 +308,17 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Sends a network message for moving a creature to a new position
         /// </summary>
-        public void MoveTo(Position position, float runRate = 1.0f, bool setLoc = true)
+        public void MoveTo(Position position, float runRate = 1.0f, bool setLoc = true, float? walkRunThreshold = null, float? speed = null)
         {
+            // TODO: change parameters to accept an optional MoveToParameters
+
             var motion = new Motion(this, position);
             motion.MovementType = MovementType.MoveToPosition;
             //motion.Flag |= MovementParams.CanCharge | MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.MoveAway;
-            motion.MoveToParameters.WalkRunThreshold = 1.0f;
+            if (walkRunThreshold != null)
+                motion.MoveToParameters.WalkRunThreshold = walkRunThreshold.Value;
+            if (speed != null)
+                motion.MoveToParameters.Speed = speed.Value;
 
             // always use final heading?
             var frame = new AFrame(position.Pos, position.Rotation);
@@ -326,9 +331,14 @@ namespace ACE.Server.WorldObjects
             else
                 motion.MoveToParameters.MovementParameters &= ~MovementParams.CanRun;
 
-            // todo: use better movement system
+            // todo: use physics MoveToManager
+            // todo: handle landblock updates
             if (setLoc)
+            {
                 Location = new Position(position);
+                // FIXME however this is taking down entire servers
+                //PhysicsObj.SetPositionSimple(new Physics.Common.Position(position), true);
+            }
 
             EnqueueBroadcastMotion(motion);
         }

@@ -61,7 +61,7 @@ namespace ACE.Server.WorldObjects
 
         private void SetEphemeralValues()
         {
-            DefaultScriptId = (uint)ACE.Entity.Enum.PlayScript.RestrictionEffectBlue;
+            DefaultScriptId = (uint)PlayScript.RestrictionEffectBlue;
 
             BuildGuests();
 
@@ -593,7 +593,7 @@ namespace ACE.Server.WorldObjects
 
             if (HasDungeon)
             {
-                if ((player.Location.Cell | 0xFFFF) == DungeonLandblockID)
+                if ((player.Location.Cell | 0xFFFF) == DungeonLandblockID && (player.Location.Cell & 0xFFFF) >= 0x100)
                     return true;
             }
             return false;

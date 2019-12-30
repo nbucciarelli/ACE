@@ -8,7 +8,7 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        private static WorldObject CreateMeleeWeapon(int tier, bool isMagical)
+        public static WorldObject CreateMeleeWeapon(int tier, bool isMagical, int weaponType = -1)
         {
             Skill wieldSkillType = Skill.None;
 
@@ -29,7 +29,8 @@ namespace ACE.Server.Factories
             WieldRequirement wieldRequirments = WieldRequirement.RawSkill;
 
             int eleType = ThreadSafeRandom.Next(0, 4);
-            int weaponType = ThreadSafeRandom.Next(0, 3);
+            if (weaponType == -1)
+                weaponType = ThreadSafeRandom.Next(0, 3);
             switch (weaponType)
             {
                 case 0:
@@ -721,7 +722,7 @@ namespace ACE.Server.Factories
             }
 
             // To add a little bit of randomness to Max weapon damage
-            int maxDamageVariance = ThreadSafeRandom.Next(-4, 2);
+            int maxDamageVariance = ThreadSafeRandom.Next(-4, 0);
 
             return damageTable + maxDamageVariance;
         }

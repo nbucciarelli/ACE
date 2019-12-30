@@ -1,8 +1,6 @@
 using System;
 using System.Numerics;
 
-using log4net;
-
 using ACE.Common;
 using ACE.Database.Models.Shard;
 using ACE.Database.Models.World;
@@ -19,8 +17,6 @@ namespace ACE.Server.WorldObjects
 {
     public class SpellProjectile : WorldObject
     {
-        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
         public Server.Entity.Spell Spell;
         public ProjectileSpellType SpellType { get; set; }
 
@@ -77,7 +73,7 @@ namespace ACE.Server.WorldObjects
                 || SpellType == ProjectileSpellType.Arc || SpellType == ProjectileSpellType.Volley || SpellType == ProjectileSpellType.Blast
                 || WeenieClassId == 7276 || WeenieClassId == 7277 || WeenieClassId == 7279 || WeenieClassId == 7280)
             {
-                PhysicsObj.DefaultScript = ACE.Entity.Enum.PlayScript.ProjectileCollision;
+                PhysicsObj.DefaultScript = PlayScript.ProjectileCollision;
                 PhysicsObj.DefaultScriptIntensity = 1.0f;
             }
 
@@ -96,8 +92,8 @@ namespace ACE.Server.WorldObjects
             {
                 if (spellId == 3818)
                 {
-                    PhysicsObj.DefaultScript = ACE.Entity.Enum.PlayScript.Explode;
-                    PhysicsObj.DefaultScriptIntensity = 1.0f;
+                    DefaultScriptId = (uint)PlayScript.Explode;
+                    DefaultScriptIntensity = 1.0f;
                     ScriptedCollision = true;
                 }
                 else
@@ -224,7 +220,7 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.set_active(false);
 
             EnqueueBroadcastPhysicsState();
-            EnqueueBroadcast(new GameMessageScript(Guid, ACE.Entity.Enum.PlayScript.Explode, GetProjectileScriptIntensity(SpellType)));
+            EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.Explode, GetProjectileScriptIntensity(SpellType)));
 
             ActionChain selfDestructChain = new ActionChain();
             selfDestructChain.AddDelaySeconds(5.0);
@@ -238,9 +234,9 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public override void OnCollideEnvironment()
         {
-            var player = ProjectileSource as Player;
+            //Console.WriteLine($"{Name}.OnCollideEnvironment()");
 
-            if (Info != null && player != null && player.DebugSpell)
+            if (Info != null && ProjectileSource is Player player && player.DebugSpell)
             {
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name}.OnCollideEnvironment()", ChatMessageType.Broadcast));
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat(Info.ToString(), ChatMessageType.Broadcast));
@@ -314,8 +310,8 @@ namespace ACE.Server.WorldObjects
                         player.Session.Network.EnqueueSend(dot.Message);
 
                     // corruption / corrosion playscript?
-                    //target.EnqueueBroadcast(new GameMessageScript(target.Guid, ACE.Entity.Enum.PlayScript.HealthDownVoid));
-                    //target.EnqueueBroadcast(new GameMessageScript(target.Guid, ACE.Entity.Enum.PlayScript.DirtyFightingDefenseDebuff));
+                    //target.EnqueueBroadcast(new GameMessageScript(target.Guid, PlayScript.HealthDownVoid));
+                    //target.EnqueueBroadcast(new GameMessageScript(target.Guid, PlayScript.DirtyFightingDefenseDebuff));
                 }
                 else
                 {

@@ -122,10 +122,22 @@ namespace ACE.Server.WorldObjects.Managers
                 group e by e.SpellCategory
                 into categories
                 //select categories.OrderByDescending(c => c.LayerId).First();
-                select categories.OrderByDescending(c => c.PowerLevel).First();
+                select categories.OrderByDescending(c => c.PowerLevel).ThenByDescending(c => Level8AuraSelfSpells.Contains(c.SpellId)).First();
 
             return results.ToList();
         }
+
+        // this ensures level 8 item self spells always take precedence over level 8 item other spells
+
+        public static HashSet<int> Level8AuraSelfSpells = new HashSet<int>()
+        {
+            (int)SpellId.BloodDrinkerSelf8,
+            (int)SpellId.DefenderSelf8,
+            (int)SpellId.HeartSeekerSelf8,
+            (int)SpellId.SpiritDrinkerSelf8,
+            (int)SpellId.SwiftKillerSelf8,
+            (int)SpellId.HermeticLinkSelf8,
+        };
 
         /// <summary>
         /// Returns the top layers in each spell category for a StatMod type
@@ -1269,7 +1281,7 @@ namespace ACE.Server.WorldObjects.Managers
         public void ApplyHealingTick(List<BiotaPropertiesEnchantmentRegistry> enchantments)
         {
             var creature = WorldObject as Creature;
-            if (creature == null) return;
+            if (creature == null || creature.IsDead) return;
 
             // get the total tick amount
             var tickAmountTotal = 0.0f;
@@ -1300,7 +1312,7 @@ namespace ACE.Server.WorldObjects.Managers
         public void ApplyDamageTick(List<BiotaPropertiesEnchantmentRegistry> enchantments, DamageType damageType)
         {
             var creature = WorldObject as Creature;
-            if (creature == null) return;
+            if (creature == null || creature.IsDead) return;
 
             bool isDead = false;
             var damagers = new Dictionary<WorldObject, float>();
@@ -1337,7 +1349,7 @@ namespace ACE.Server.WorldObjects.Managers
 
                 var damageRatingMod = Creature.AdditiveCombine(heritageMod, Creature.GetPositiveRatingMod(damager.GetDamageRating()));
 
-                var damageResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDamageResistRating(CombatType.Magic));    // df?
+                var damageResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDamageResistRating(CombatType.Magic, false));    // df?
                 var dotResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDotResistanceRating());
 
                 //Console.WriteLine("DR: " + Creature.ModToRating(damageRatingMod));
