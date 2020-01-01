@@ -1050,7 +1050,7 @@ namespace ACE.Server.WorldObjects
             return iterator.CurrentLandblock == null ? null : iterator;
         }
 
-        public float EnqueueMotion(ActionChain actionChain, MotionCommand motionCommand, float speed = 1.0f, bool useStance = true, MotionCommand? prevCommand = null)
+        public float EnqueueMotion(ActionChain actionChain, MotionCommand motionCommand, float speed = 1.0f, bool useStance = true, MotionCommand? prevCommand = null, bool castGesture = false)
         {
             var stance = CurrentMotionState != null && useStance ? CurrentMotionState.Stance : MotionStance.NonCombat;
 
@@ -1061,6 +1061,37 @@ namespace ACE.Server.WorldObjects
             if (prevCommand != null)
             {
                 animLength = Physics.Animation.MotionTable.GetAnimationLength(MotionTableId, stance, prevCommand.Value, motionCommand, speed);
+            }
+            else
+                animLength = Physics.Animation.MotionTable.GetAnimationLength(MotionTableId, stance, motionCommand, speed);
+
+            actionChain.AddAction(this, () =>
+            {
+                if (castGesture && this is Player player && !player.MagicState.IsCasting)
+                    return;
+
+                CurrentMotionState = motion;
+                EnqueueBroadcastMotion(motion);
+            });
+
+            actionChain.AddDelaySeconds(animLength);
+
+            return animLength;
+        }
+
+        public float EnqueueMotionAction(ActionChain actionChain, MotionCommand motionCommand, float speed = 1.0f, bool useStance = true, bool usePrevCommand = false)
+        {
+            var stance = CurrentMotionState != null && useStance ? CurrentMotionState.Stance : MotionStance.NonCombat;
+
+            var motion = new Motion(stance, MotionCommand.Ready, speed);
+            motion.MotionState.AddCommand(this, motionCommand, speed);
+            motion.MotionState.TurnSpeed = 2.25f;  // ??
+
+            var animLength = 0.0f;
+            if (usePrevCommand)
+            {
+                var prevCommand = CurrentMotionState.MotionState.ForwardCommand;
+                animLength = Physics.Animation.MotionTable.GetAnimationLength(MotionTableId, stance, prevCommand, motionCommand, speed);
             }
             else
                 animLength = Physics.Animation.MotionTable.GetAnimationLength(MotionTableId, stance, motionCommand, speed);
@@ -1105,7 +1136,6 @@ namespace ACE.Server.WorldObjects
 
             return animLength;
         }
-
 
         public static bool EnqueueBroadcastMotion_Physics = true;
 
