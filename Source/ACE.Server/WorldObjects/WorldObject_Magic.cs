@@ -1118,6 +1118,12 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public List<SpellProjectile> CreateSpellProjectiles(Spell spell, WorldObject target, WorldObject caster)
         {
+            if (spell.NumProjectiles == 0)
+            {
+                log.Error($"{Name} ({Guid}).CreateSpellProjectiles({spell.Id} - {spell.Name}) - spell.NumProjectiles == 0");
+                return new List<SpellProjectile>();
+            }
+
             var spellType = SpellProjectile.GetProjectileSpellType(spell.Id);
 
             var origins = CalculateProjectileOrigins(spell);
@@ -1144,7 +1150,13 @@ namespace ACE.Server.WorldObjects
 
             var baseOffset = spell.CreateOffset;
 
-            baseOffset.Y += PhysicsObj.GetPhysicsRadius() * 2.0f + radius * 2.0f;
+            var radsum = PhysicsObj.GetPhysicsRadius() * 2.0f + radius * 2.0f;
+
+            if (spell.SpreadAngle == 360)
+                radsum *= 0.6f;
+
+            baseOffset.Y += radsum;
+
             baseOffset.Z += Height * ProjHeight;
 
             var anglePerStep = GetSpreadAnglePerStep(spell);

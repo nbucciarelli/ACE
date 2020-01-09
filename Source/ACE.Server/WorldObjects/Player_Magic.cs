@@ -115,6 +115,41 @@ namespace ACE.Server.WorldObjects
             {
                 if (!CreatePlayerSpell(target, targetCategory, spellId, builtInSpell))
                     MagicState.OnCastDone();
+<<<<<<< HEAD
+=======
+
+                return;
+            }
+
+            // start turning
+            if (!FastTick)
+            {
+                var rotateTarget = target;
+                if (rotateTarget.WielderId != null)
+                    rotateTarget = CurrentLandblock?.GetObject(rotateTarget.WielderId.Value);
+
+                var rotateTime = Rotate(rotateTarget);
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(rotateTime);
+
+                actionChain.AddAction(this, () =>
+                {
+                    // ensure target still exists
+                    targetCategory = GetTargetCategory(targetGuid, spellId, out target);
+
+                    if (target == null)
+                    {
+                        SendUseDoneEvent(WeenieError.TargetNotAcquired);
+                        MagicState.OnCastDone();
+                        return;
+                    }
+
+                    if (!CreatePlayerSpell(target, targetCategory, spellId, builtInSpell))
+                        MagicState.OnCastDone();
+                });
+
+                actionChain.EnqueueChain();
+>>>>>>> upstream/master
             }
             else
             {
@@ -316,7 +351,7 @@ namespace ACE.Server.WorldObjects
 
         public bool VerifySpellRange(WorldObject target, TargetCategory targetCategory, Spell spell, uint magicSkill)
         {
-            if (targetCategory != TargetCategory.WorldObject || target.Guid == Guid)
+            if (targetCategory != TargetCategory.WorldObject && targetCategory != TargetCategory.Wielded || target.Guid == Guid)
                 return true;
 
             var targetLoc = target;
@@ -477,7 +512,7 @@ namespace ACE.Server.WorldObjects
         // 20 from MoveToManager threshold?
         public static float MaxAngle = 5;
 
-        public void DoCastSpell(MagicState _state)
+        public void DoCastSpell(MagicState _state, bool checkAngle = true)
         {
             //Console.WriteLine("DoCastSpell");
 
@@ -494,7 +529,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            DoCastSpell(state.Spell, state.IsWeaponSpell, state.MagicSkill, state.ManaUsed, state.Target, state.Status);
+            DoCastSpell(state.Spell, state.IsWeaponSpell, state.MagicSkill, state.ManaUsed, state.Target, state.Status, checkAngle);
         }
 
         public bool IsWithinAngle(WorldObject target)
@@ -527,8 +562,7 @@ namespace ACE.Server.WorldObjects
             return angle <= maxAngle;
         }
 
-
-        public void DoCastSpell(Spell spell, bool isWeaponSpell, uint magicSkill, uint manaUsed, WorldObject target, CastingPreCheckStatus castingPreCheckStatus)
+        public void DoCastSpell(Spell spell, bool isWeaponSpell, uint magicSkill, uint manaUsed, WorldObject target, CastingPreCheckStatus castingPreCheckStatus, bool checkAngle = true)
         {
             if (target != null)
             {
@@ -542,7 +576,8 @@ namespace ACE.Server.WorldObjects
                 }
 
                 // do second rotate, if applicable
-                if (!IsWithinAngle(target))
+                // TODO: investigate this more, difference for GetAngle() between ACE and ac physics engine
+                if (FastTick && checkAngle && !IsWithinAngle(target))
                 {
                     TurnTo_Magic(target);
                     return;
@@ -1300,7 +1335,7 @@ namespace ACE.Server.WorldObjects
             if (!MagicState.CastMotionDone)
                 DoWindup(MagicState.WindupParams);
             else
-                DoCastSpell(MagicState);
+                DoCastSpell(MagicState, status != WeenieError.None);
         }
     }
 }
