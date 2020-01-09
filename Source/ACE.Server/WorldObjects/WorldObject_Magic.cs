@@ -1454,7 +1454,6 @@ namespace ACE.Server.WorldObjects
 
             if (spell.IsHarmful)
             {
-<<<<<<< HEAD
                 if (player != null && targetPlayer != null)
                 {
                     player.EnchantmentManager.RemoveRareEnchantments();
@@ -1462,9 +1461,6 @@ namespace ACE.Server.WorldObjects
                 }
 
                 var resisted = ResistSpell(target, spell, caster);
-=======
-                var resisted = ResistSpell(target, spell, caster);
->>>>>>> upstream/command-interp
                 if (resisted == true)
                     return false;
                 if (resisted == null)

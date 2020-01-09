@@ -358,7 +358,6 @@ namespace ACE.Server.WorldObjects
             if (sourceCreature?.Overpower != null)
                 overpower = Creature.GetOverpower(sourceCreature, target);
 
-<<<<<<< HEAD
             bool isPVP = sourcePlayer != null && targetPlayer != null;
 
             if (isPVP && Spell.IsHarmful)
@@ -368,9 +367,6 @@ namespace ACE.Server.WorldObjects
             }
 
             var resisted = source.ResistSpell(target, Spell, caster);
-=======
-            var resisted = source.ResistSpell(target, Spell, caster);
->>>>>>> upstream/command-interp
             if (resisted == true && !overpower)
                 return null;
 
