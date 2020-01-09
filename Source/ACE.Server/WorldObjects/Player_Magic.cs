@@ -115,8 +115,6 @@ namespace ACE.Server.WorldObjects
             {
                 if (!CreatePlayerSpell(target, targetCategory, spellId, builtInSpell))
                     MagicState.OnCastDone();
-<<<<<<< HEAD
-=======
 
                 return;
             }
@@ -149,7 +147,6 @@ namespace ACE.Server.WorldObjects
                 });
 
                 actionChain.EnqueueChain();
->>>>>>> upstream/master
             }
             else
             {
